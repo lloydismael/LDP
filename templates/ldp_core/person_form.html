@@ -113,17 +113,27 @@
                     <input type="hidden" name="{{ form.school.html_name }}" value="{{ principal_school.pk }}">
                     <p class="mt-1.5 text-xs text-slate-400">User will be enrolled under your school.</p>
                     {% else %}
-                    <div class="relative">
-                        <select name="{{ form.school.html_name }}" id="{{ form.school.id_for_label }}"
-                            class="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
-                            {% for val, label in form.school.field.choices %}
-                            <option value="{{ val }}" {% if form.school.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+                    <!-- Searchable school combobox -->
+                    <div class="relative" id="school-combo-wrap">
+                        <input type="text" id="school-search"
+                            autocomplete="off"
+                            placeholder="Type to search school…"
+                            class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
                         <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-                            <i class="fas fa-chevron-down text-xs"></i>
+                            <i class="fas fa-search text-xs"></i>
                         </div>
+                        <!-- Hidden real input submitted with the form -->
+                        <input type="hidden" name="{{ form.school.html_name }}" id="school-value"
+                            value="{{ form.school.value|default:'' }}">
+                        <!-- Dropdown list -->
+                        <ul id="school-dropdown"
+                            class="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden text-sm">
+                        </ul>
                     </div>
+                    <!-- School data for JS -->
+                    <script id="school-data" type="application/json">[
+                        {% for val, label in form.school.field.choices %}{% if val %}{"v":"{{ val }}","l":"{{ label|escapejs }}"}{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}
+                    ]</script>
                     {% endif %}
                     {% if form.school.errors %}
                     <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.school.errors.0 }}</p>
@@ -155,4 +165,66 @@
 
     </form>
 </div>
+
+<script>
+(function () {
+    const dataEl = document.getElementById('school-data');
+    if (!dataEl) return;
+    const schools = JSON.parse(dataEl.textContent);
+    const searchInput = document.getElementById('school-search');
+    const valueInput  = document.getElementById('school-value');
+    const dropdown    = document.getElementById('school-dropdown');
+
+    // Pre-fill display if a value is already selected (e.g. form re-render after error)
+    const initialVal = valueInput.value;
+    if (initialVal) {
+        const match = schools.find(s => String(s.v) === String(initialVal));
+        if (match) searchInput.value = match.l;
+    }
+
+    function renderList(items) {
+        dropdown.innerHTML = '';
+        if (!items.length) {
+            const li = document.createElement('li');
+            li.className = 'px-4 py-2.5 text-slate-400 italic text-xs';
+            li.textContent = 'No schools found.';
+            dropdown.appendChild(li);
+        } else {
+            items.forEach(s => {
+                const li = document.createElement('li');
+                li.className = 'px-4 py-2.5 cursor-pointer hover:bg-indigo-50 hover:text-primary transition-colors truncate';
+                li.textContent = s.l;
+                li.dataset.value = s.v;
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    searchInput.value = s.l;
+                    valueInput.value  = s.v;
+                    dropdown.classList.add('hidden');
+                });
+                dropdown.appendChild(li);
+            });
+        }
+        dropdown.classList.remove('hidden');
+    }
+
+    searchInput.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        valueInput.value = '';   // clear selection when user types
+        if (!q) { dropdown.classList.add('hidden'); return; }
+        renderList(schools.filter(s => s.l.toLowerCase().includes(q)));
+    });
+
+    searchInput.addEventListener('focus', function () {
+        const q = this.value.trim().toLowerCase();
+        if (q) renderList(schools.filter(s => s.l.toLowerCase().includes(q)));
+    });
+
+    searchInput.addEventListener('blur', function () {
+        // Small delay so mousedown on list item fires first
+        setTimeout(() => dropdown.classList.add('hidden'), 150);
+        // If text doesn't match a selection, clear both
+        if (!valueInput.value) searchInput.value = '';
+    });
+})();
+</script>
 {% endblock %}
