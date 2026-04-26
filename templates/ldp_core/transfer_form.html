@@ -1,0 +1,179 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}{% if is_edit %}Edit Transfer Record{% else %}Transfer to Another School{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center gap-3">
+    <a href="{% url 'ldp_core:person_detail' person.pk %}"
+       class="h-9 w-9 inline-flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-navy hover:border-slate-300 shadow-sm transition">
+      <i class="fas fa-arrow-left text-sm"></i>
+    </a>
+    <div>
+      <h2 class="text-xl font-bold text-navy tracking-tight">
+        {% if is_edit %}Edit Transfer Record{% else %}Transfer to Another School{% endif %}
+      </h2>
+      <p class="text-xs text-secondary mt-0.5">
+        <i class="fas fa-user mr-1"></i>
+        {% if person.user %}{{ person.user.get_full_name }}{% else %}Person #{{ person.pk }}{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Current school notice -->
+  {% if not is_edit %}
+  <div class="glass-card p-4 flex items-center gap-4">
+    {% if person.school %}
+    <div class="h-10 w-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+      <i class="fas fa-school"></i>
+    </div>
+    <div>
+      <p class="text-xs text-secondary uppercase font-bold tracking-wider">Currently enrolled at</p>
+      <p class="font-bold text-navy text-sm">{{ person.school.name }}</p>
+      {% if person.school.location %}<p class="text-xs text-slate-400">{{ person.school.location }}</p>{% endif %}
+    </div>
+    <div class="ml-auto text-slate-300"><i class="fas fa-arrow-right text-lg"></i></div>
+    <div class="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+      <i class="fas fa-school"></i>
+    </div>
+    <p class="text-xs text-secondary font-semibold italic">New school selected below</p>
+    {% else %}
+    <div class="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <p class="text-sm text-amber-700">This person has no current school assigned. A transfer will set their first school.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="rounded-xl p-4 {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-800{% else %}bg-red-50 border border-red-200 text-red-800{% endif %} flex items-center gap-2 text-sm">
+      <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+      {{ message }}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" class="space-y-5">
+    {% csrf_token %}
+
+    <div class="glass-card p-6 space-y-5">
+      <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+        <div class="h-8 w-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center">
+          <i class="fas fa-exchange-alt text-sm"></i>
+        </div>
+        <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Transfer Details</h3>
+      </div>
+
+      <!-- Destination School -->
+      <div>
+        <label for="{{ form.to_school.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+          Destination School <span class="text-red-400">*</span>
+        </label>
+        <div class="relative">
+          <select name="{{ form.to_school.html_name }}" id="{{ form.to_school.id_for_label }}"
+              class="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+            <option value="">— Select destination school —</option>
+            {% for val, label in form.to_school.field.choices %}
+              {% if val %}
+              <option value="{{ val }}" {% if form.to_school.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <i class="fas fa-chevron-down text-xs"></i>
+          </div>
+        </div>
+        {% if form.to_school.errors %}<p class="mt-1.5 text-xs text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.to_school.errors.0 }}</p>{% endif %}
+      </div>
+
+      <!-- Reason -->
+      <div>
+        <label for="{{ form.reason.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+          Reason for Transfer <span class="text-red-400">*</span>
+        </label>
+        <div class="relative">
+          <select name="{{ form.reason.html_name }}" id="{{ form.reason.id_for_label }}"
+              class="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+            {% for val, label in form.reason.field.choices %}
+            <option value="{{ val }}" {% if form.reason.value == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <i class="fas fa-chevron-down text-xs"></i>
+          </div>
+        </div>
+        {% if form.reason.errors %}<p class="mt-1.5 text-xs text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.reason.errors.0 }}</p>{% endif %}
+      </div>
+
+      <!-- Dates -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label for="{{ form.transfer_date.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+            Transfer Date <span class="text-red-400">*</span>
+          </label>
+          <input type="date"
+              name="{{ form.transfer_date.html_name }}"
+              id="{{ form.transfer_date.id_for_label }}"
+              value="{{ form.transfer_date.value|default:'' }}"
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+          {% if form.transfer_date.errors %}<p class="mt-1.5 text-xs text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.transfer_date.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="{{ form.effective_date.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+            Effective Date <span class="text-slate-400 font-normal normal-case">(optional)</span>
+          </label>
+          <input type="date"
+              name="{{ form.effective_date.html_name }}"
+              id="{{ form.effective_date.id_for_label }}"
+              value="{{ form.effective_date.value|default:'' }}"
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+          {% if form.effective_date.errors %}<p class="mt-1.5 text-xs text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.effective_date.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div>
+        <label for="{{ form.notes.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+          Notes / Remarks <span class="text-slate-400 font-normal normal-case">(optional)</span>
+        </label>
+        <textarea
+            name="{{ form.notes.html_name }}"
+            id="{{ form.notes.id_for_label }}"
+            rows="3"
+            placeholder="Additional details about this transfer…"
+            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">{{ form.notes.value|default:'' }}</textarea>
+        {% if form.notes.errors %}<p class="mt-1.5 text-xs text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.notes.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+
+    {% if not is_edit %}
+    <!-- Warning notice -->
+    <div class="glass-card p-4 border-l-4 border-amber-400 bg-amber-50/60">
+      <div class="flex items-start gap-3">
+        <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5"></i>
+        <p class="text-xs text-amber-700">
+          Submitting this form will <strong>immediately update</strong> the person's active school to the selected destination. A transfer record will be logged in their history.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex items-center justify-end gap-3">
+      <a href="{% url 'ldp_core:person_detail' person.pk %}"
+         class="px-5 py-2.5 bg-white hover:bg-slate-50 text-navy font-semibold rounded-xl border border-slate-200 shadow-sm transition text-sm flex items-center gap-2">
+        <i class="fas fa-times text-secondary"></i> Cancel
+      </a>
+      <button type="submit"
+          class="px-6 py-2.5 bg-primary hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition text-sm flex items-center gap-2">
+        <i class="fas {% if is_edit %}fa-save{% else %}fa-exchange-alt{% endif %}"></i>
+        {% if is_edit %}Save Changes{% else %}Process Transfer{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

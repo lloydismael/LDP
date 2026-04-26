@@ -241,6 +241,92 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Transfer History -->
+            {% with transfers=person.transfer_history.all %}
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                    <div class="h-8 w-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center">
+                        <i class="fas fa-exchange-alt text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Transfer History</h3>
+                    <span class="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-lg">{{ transfers.count }}</span>
+                    {% if user.is_superuser or user.role == 'ADMIN' %}
+                    <a href="{% url 'ldp_core:transfer_add' person.pk %}"
+                       class="ml-auto h-7 px-3 inline-flex items-center gap-1.5 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold transition">
+                        <i class="fas fa-exchange-alt text-[10px]"></i> Transfer
+                    </a>
+                    {% endif %}
+                </div>
+                {% if transfers %}
+                <div class="relative">
+                    <div class="absolute left-3.5 top-2 bottom-2 w-px bg-slate-200"></div>
+                    <div class="space-y-4">
+                        {% for t in transfers %}
+                        <div class="relative flex items-start gap-4 pl-9 group">
+                            <div class="absolute left-0 top-0.5 h-7 w-7 rounded-full flex items-center justify-center shrink-0 border-2 border-violet-300 bg-violet-50">
+                                <i class="fas fa-exchange-alt text-[10px] text-violet-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0 pb-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-sm text-navy">
+                                        {{ t.from_school.name|default:"(No School)" }}
+                                    </span>
+                                    <i class="fas fa-arrow-right text-[10px] text-slate-400"></i>
+                                    <span class="font-bold text-sm text-primary">
+                                        {{ t.to_school.name|default:"(No School)" }}
+                                    </span>
+                                    {% if user.is_superuser or user.role == 'ADMIN' %}
+                                    <div class="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <a href="{% url 'ldp_core:transfer_edit' person.pk t.pk %}"
+                                           class="h-6 w-6 inline-flex items-center justify-center rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                                           title="Edit record">
+                                            <i class="fas fa-edit text-[10px]"></i>
+                                        </a>
+                                        <a href="{% url 'ldp_core:transfer_delete' person.pk t.pk %}"
+                                           class="h-6 w-6 inline-flex items-center justify-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                           title="Delete record">
+                                            <i class="fas fa-trash-alt text-[10px]"></i>
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-secondary mt-0.5 flex items-center gap-2 flex-wrap">
+                                    <span><i class="fas fa-calendar text-[10px] mr-1"></i>{{ t.transfer_date|date:"M d, Y" }}</span>
+                                    {% if t.effective_date %}
+                                    <span class="text-slate-300">·</span>
+                                    <span>Effective {{ t.effective_date|date:"M d, Y" }}</span>
+                                    {% endif %}
+                                    <span class="text-slate-300">·</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 text-[10px] font-bold ring-1 ring-violet-200/50">
+                                        {{ t.get_reason_display }}
+                                    </span>
+                                </div>
+                                {% if t.notes %}
+                                <p class="text-xs text-slate-400 mt-1 italic">{{ t.notes }}</p>
+                                {% endif %}
+                                {% if t.processed_by %}
+                                <p class="text-[10px] text-slate-300 mt-0.5">
+                                    <i class="fas fa-user-check mr-1"></i>Processed by {{ t.processed_by.get_full_name|default:t.processed_by.username }}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="py-4 text-center">
+                    <div class="text-slate-400 text-xs italic">No transfer records yet.</div>
+                    {% if user.is_superuser or user.role == 'ADMIN' %}
+                    <a href="{% url 'ldp_core:transfer_add' person.pk %}" class="inline-flex items-center gap-1.5 mt-2 text-xs text-violet-600 hover:underline font-medium">
+                        <i class="fas fa-plus-circle text-[10px]"></i> Record a transfer
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endwith %}
         </div>
 
         <!-- Right column: stats -->
@@ -302,6 +388,16 @@
                     <i class="fas fa-bolt text-amber-500"></i> Quick Actions
                 </h4>
                 <div class="flex flex-col gap-2">
+
+                {% if user.is_superuser or user.role == 'ADMIN' %}
+                <a href="{% url 'ldp_core:transfer_add' person.pk %}"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 text-sm font-semibold transition group">
+                    <div class="h-7 w-7 rounded-lg bg-violet-100 group-hover:bg-violet-200 flex items-center justify-center shrink-0">
+                        <i class="fas fa-exchange-alt text-xs"></i>
+                    </div>
+                    Transfer School
+                </a>
+                {% endif %}
 
                 {% if person.type == 'PRINCIPAL' %}
                     {% if person.school %}

@@ -4,8 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import PasswordChangeView
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
-from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory
-from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm
+from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory
+from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm, PersonTransferForm
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.contrib import messages
@@ -773,3 +773,92 @@ class AssignmentHistoryDeleteView(LoginRequiredMixin, AssignmentHistoryMixin, De
 
     def get_success_url(self):
         return reverse_lazy('ldp_core:school_detail', kwargs={'pk': self.kwargs['school_pk']})
+
+
+# ── Person Transfer CRUD ──────────────────────────────────────────────────────
+
+class TransferMixin(UserPassesTestMixin):
+    """Admin/superuser only."""
+    def test_func(self):
+        user = self.request.user
+        return user.is_superuser or getattr(user, 'role', None) == 'ADMIN'
+
+
+class PersonTransferView(LoginRequiredMixin, TransferMixin, CreateView):
+    """Record a new school transfer for a person."""
+    model = PersonTransferHistory
+    form_class = PersonTransferForm
+    template_name = 'ldp_core/transfer_form.html'
+
+    def _get_person(self):
+        return get_object_or_404(Person, pk=self.kwargs['person_pk'])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['person'] = self._get_person()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['person'] = self._get_person()
+        return ctx
+
+    def form_valid(self, form):
+        person = self._get_person()
+        entry = form.save(commit=False)
+        entry.person = person
+        entry.from_school = person.school
+        entry.processed_by = self.request.user
+        entry.save()
+        # Actually move the person to the new school
+        person.school = entry.to_school
+        person.save()
+        messages.success(
+            self.request,
+            f'{person} has been transferred to {entry.to_school}.'
+        )
+        return redirect('ldp_core:person_detail', pk=person.pk)
+
+
+class TransferEditView(LoginRequiredMixin, TransferMixin, UpdateView):
+    """Edit an existing transfer record (admin-only)."""
+    model = PersonTransferHistory
+    form_class = PersonTransferForm
+    template_name = 'ldp_core/transfer_form.html'
+
+    def _get_person(self):
+        return get_object_or_404(Person, pk=self.kwargs['person_pk'])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['person'] = None  # no exclusion needed when editing
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['person'] = self._get_person()
+        ctx['is_edit'] = True
+        return ctx
+
+    def form_valid(self, form):
+        person = self._get_person()
+        form.save()
+        messages.success(self.request, 'Transfer record updated.')
+        return redirect('ldp_core:person_detail', pk=person.pk)
+
+
+class TransferDeleteView(LoginRequiredMixin, TransferMixin, DeleteView):
+    """Delete a transfer record (admin-only)."""
+    model = PersonTransferHistory
+    template_name = 'ldp_core/transfer_confirm_delete.html'
+
+    def _get_person(self):
+        return get_object_or_404(Person, pk=self.kwargs['person_pk'])
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['person'] = self._get_person()
+        return ctx
+
+    def get_success_url(self):
+        return reverse_lazy('ldp_core:person_detail', kwargs={'pk': self.kwargs['person_pk']})

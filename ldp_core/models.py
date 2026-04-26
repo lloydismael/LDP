@@ -181,3 +181,49 @@ class Person(models.Model):
         if self.user:
             return self.user.get_full_name()
         return f"Person {self.id}"
+
+
+class PersonTransferHistory(models.Model):
+    """Tracks every school transfer made for a person."""
+    class Reason(models.TextChoices):
+        PROMOTION = 'PROMOTION', 'Promotion / Reassignment'
+        RELOCATION = 'RELOCATION', 'Family Relocation'
+        COMPLETION = 'COMPLETION', 'Course Completion / Graduation'
+        SCHOLARSHIP = 'SCHOLARSHIP', 'Scholarship Transfer'
+        ADMINISTRATIVE = 'ADMINISTRATIVE', 'Administrative Order'
+        OTHER = 'OTHER', 'Other'
+
+    person = models.ForeignKey(
+        Person, on_delete=models.CASCADE, related_name='transfer_history'
+    )
+    from_school = models.ForeignKey(
+        School, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='transfers_out', verbose_name='From School'
+    )
+    to_school = models.ForeignKey(
+        School, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='transfers_in', verbose_name='To School'
+    )
+    transfer_date = models.DateField(verbose_name='Transfer Date')
+    effective_date = models.DateField(null=True, blank=True, verbose_name='Effective Date')
+    reason = models.CharField(
+        max_length=50, choices=Reason.choices, default=Reason.OTHER,
+        verbose_name='Reason for Transfer'
+    )
+    notes = models.TextField(blank=True, verbose_name='Notes / Remarks')
+    processed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='processed_transfers', verbose_name='Processed By'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-transfer_date']
+        verbose_name = 'Transfer History'
+        verbose_name_plural = 'Transfer Histories'
+
+    def __str__(self):
+        return (
+            f"{self.person} | {self.from_school} → {self.to_school} "
+            f"({self.transfer_date})"
+        )

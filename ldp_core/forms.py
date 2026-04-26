@@ -1,7 +1,7 @@
 import re
 from django import forms
 from django.db import transaction
-from .models import Person, User, Activity, School, LeadershipAward, SchoolPrincipalHistory
+from .models import Person, User, Activity, School, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory
 
 
 class SchoolPrincipalHistoryForm(forms.ModelForm):
@@ -327,3 +327,25 @@ class PersonUpdateForm(forms.ModelForm):
             person.save()
             self.save_m2m()
         return person
+
+
+class PersonTransferForm(forms.ModelForm):
+    class Meta:
+        model = PersonTransferHistory
+        fields = ['to_school', 'transfer_date', 'effective_date', 'reason', 'notes']
+        widgets = {
+            'transfer_date': forms.DateInput(attrs={'type': 'date'}),
+            'effective_date': forms.DateInput(attrs={'type': 'date'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, person=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.person = person
+        # Exclude the person's current school from destination choices
+        qs = School.objects.filter(is_active=True).order_by('name')
+        if person and person.school_id:
+            qs = qs.exclude(pk=person.school_id)
+        self.fields['to_school'].queryset = qs
+        self.fields['to_school'].empty_label = '— Select destination school —'
+        self.fields['effective_date'].required = False

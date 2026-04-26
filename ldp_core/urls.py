@@ -34,4 +34,8 @@ urlpatterns = [
     path('schools/<int:school_pk>/assignment/add/', views.AssignmentHistoryAddView.as_view(), name='assignment_add'),
     path('schools/<int:school_pk>/assignment/<int:pk>/edit/', views.AssignmentHistoryEditView.as_view(), name='assignment_edit'),
     path('schools/<int:school_pk>/assignment/<int:pk>/delete/', views.AssignmentHistoryDeleteView.as_view(), name='assignment_delete'),
+    # Person School Transfers
+    path('people/<int:person_pk>/transfer/', views.PersonTransferView.as_view(), name='transfer_add'),
+    path('people/<int:person_pk>/transfer/<int:pk>/edit/', views.TransferEditView.as_view(), name='transfer_edit'),
+    path('people/<int:person_pk>/transfer/<int:pk>/delete/', views.TransferDeleteView.as_view(), name='transfer_delete'),
 ]
