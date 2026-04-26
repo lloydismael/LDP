@@ -13,25 +13,34 @@ from django.db.models import Q
 
 @login_required
 def dashboard(request):
+    import json
+    from datetime import date as _date
     user = request.user
     if user.is_superuser or user.role == 'ADMIN':
         schools_count = School.objects.filter(is_active=True).count()
         people_count = Person.objects.count()
         activities_count = Activity.objects.count()
-    elif hasattr(user, 'person') and user.person.school:
+        cal_qs = Activity.objects.values('pk', 'name', 'date')
+    elif hasattr(user, 'person') and user.person and user.person.school:
         schools_count = 1
         people_count = Person.objects.filter(school=user.person.school).count()
         activities_count = Activity.objects.filter(school=user.person.school).count()
+        cal_qs = Activity.objects.filter(school=user.person.school).values('pk', 'name', 'date')
     else:
         schools_count = 0
         people_count = 0
         activities_count = 0
-    
+        cal_qs = Activity.objects.values('pk', 'name', 'date')
+
+    cal_acts = [{'pk': a['pk'], 'name': a['name'], 'date': a['date'].isoformat()} for a in cal_qs]
+
     context = {
         'schools_count': schools_count,
         'people_count': people_count,
         'activities_count': activities_count,
         'pending_changes_count': Person.objects.filter(is_pending_approval=True).count() if (user.is_superuser or user.role == 'ADMIN') else 0,
+        'cal_activities': json.dumps(cal_acts),
+        'today': _date.today().isoformat(),
     }
     return render(request, 'ldp_core/dashboard.html', context)
 

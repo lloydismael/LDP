@@ -273,5 +273,128 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Activities Calendar -->
+<div class="glass-card mt-6">
+    <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-bold text-navy flex items-center gap-2">
+            <i class="fas fa-calendar-days text-violet-500 text-base"></i> Activities Calendar
+        </h3>
+        <div class="flex items-center gap-2">
+            <button id="cal-prev" class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 transition flex items-center justify-center">
+                <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            <span id="cal-month-label" class="font-bold text-navy text-sm min-w-[130px] text-center"></span>
+            <button id="cal-next" class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 transition flex items-center justify-center">
+                <i class="fas fa-chevron-right text-xs"></i>
+            </button>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-6">
+        <!-- Calendar grid -->
+        <div>
+            <div class="grid grid-cols-7 mb-2 text-center">
+                <div class="text-[11px] font-bold text-gray-400 uppercase py-1">Sun</div>
+                <div class="text-[11px] font-bold text-gray-400 uppercase py-1">Mon</div>
+                <div class="text-[11px] font-bold text-gray-400 uppercase py-1">Tue</div>
+                <div class="text-[11px] font-bold text-gray-400 uppercase py-1">Wed</div>
+                <div class="text-[11px] font-bold text-gray-400 uppercase py-1">Thu</div>
+                <div class="text-[11px] font-bold text-gray-400 uppercase py-1">Fri</div>
+                <div class="text-[11px] font-bold text-gray-400 uppercase py-1">Sat</div>
+            </div>
+            <div id="cal-grid" class="grid grid-cols-7 gap-1"></div>
+        </div>
+        <!-- Event side panel -->
+        <div class="border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
+            <p id="cal-events-title" class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Select a date</p>
+            <div id="cal-events-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+    const ACTIVITIES = {{ cal_activities|safe }};
+    const TODAY = '{{ today }}';
+    const actMap = {};
+    ACTIVITIES.forEach(a => {
+        if (!actMap[a.date]) actMap[a.date] = [];
+        actMap[a.date].push(a);
+    });
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    let cur = new Date(TODAY + 'T00:00:00');
+    cur.setDate(1);
+    const grid = document.getElementById('cal-grid');
+    const label = document.getElementById('cal-month-label');
+    const evTitle = document.getElementById('cal-events-title');
+    const evList = document.getElementById('cal-events-list');
+    let selectedCell = null;
+
+    function toISO(y, m, d) {
+        return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+
+    function renderCal() {
+        const y = cur.getFullYear(), m = cur.getMonth();
+        label.textContent = `${MONTHS[m]} ${y}`;
+        grid.innerHTML = '';
+        const first = new Date(y, m, 1).getDay();
+        const days = new Date(y, m+1, 0).getDate();
+        for (let i = 0; i < first; i++) {
+            grid.insertAdjacentHTML('beforeend', '<div></div>');
+        }
+        for (let d = 1; d <= days; d++) {
+            const iso = toISO(y, m, d);
+            const hasEvents = !!actMap[iso];
+            const isToday = iso === TODAY;
+            let base = 'relative flex flex-col items-center justify-center h-9 rounded-lg text-sm font-medium cursor-pointer transition-all select-none ';
+            let cls = base + (isToday
+                ? 'bg-primary text-white font-bold shadow-sm '
+                : hasEvents
+                    ? 'hover:bg-violet-50 text-navy '
+                    : 'hover:bg-gray-50 text-gray-500 ');
+            const dot = hasEvents
+                ? `<span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${isToday ? 'bg-white' : 'bg-violet-500'} block"></span>`
+                : '';
+            grid.insertAdjacentHTML('beforeend',
+                `<div class="${cls}" data-date="${iso}" data-today="${isToday}">${d}${dot}</div>`);
+        }
+        grid.querySelectorAll('[data-date]').forEach(el => {
+            el.addEventListener('click', () => {
+                if (selectedCell) selectedCell.classList.remove('ring-2', 'ring-primary/40');
+                if (!el.dataset.today || el.dataset.today === 'False') {
+                    el.classList.add('ring-2', 'ring-primary/40');
+                }
+                selectedCell = el;
+                showEvents(el.dataset.date);
+            });
+        });
+    }
+
+    function showEvents(iso) {
+        const parts = iso.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+        const fmt = d.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+        evTitle.textContent = fmt;
+        const acts = actMap[iso] || [];
+        if (acts.length === 0) {
+            evList.innerHTML = '<p class="text-sm text-gray-400 italic">No activities on this date.</p>';
+        } else {
+            evList.innerHTML = acts.map(a =>
+                `<a href="/activities/${a.pk}/" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-violet-50 transition group block">
+                    <div class="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center flex-shrink-0 text-xs">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-navy group-hover:text-primary transition truncate">${a.name}</span>
+                </a>`
+            ).join('');
+        }
+    }
+
+    document.getElementById('cal-prev').addEventListener('click', () => { cur.setMonth(cur.getMonth()-1); renderCal(); });
+    document.getElementById('cal-next').addEventListener('click', () => { cur.setMonth(cur.getMonth()+1); renderCal(); });
+    renderCal();
+    showEvents(TODAY);
+})();
+</script>
 {% endblock %}
 

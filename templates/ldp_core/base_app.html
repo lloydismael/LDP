@@ -287,6 +287,22 @@
         .badge-pop {
             animation: badgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
+        /* Table scroll wrapper – invisible scrollbar track when no overflow */
+        .table-wrap {
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+        }
+        .table-wrap:hover {
+            scrollbar-color: #cbd5e1 transparent;
+        }
+        .table-wrap::-webkit-scrollbar { height: 4px; }
+        .table-wrap::-webkit-scrollbar-track { background: transparent; }
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 4px;
+        }
+        .table-wrap:hover::-webkit-scrollbar-thumb { background: #cbd5e1; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans tracking-normal leading-normal">
