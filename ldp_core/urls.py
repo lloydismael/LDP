@@ -30,4 +30,8 @@ urlpatterns = [
     path('awards/create/', views.AwardCreateView.as_view(), name='award_create'),
     path('awards/<int:pk>/edit/', views.AwardUpdateView.as_view(), name='award_update'),
     path('awards/<int:pk>/delete/', views.AwardDeleteView.as_view(), name='award_delete'),
+    # Principal Assignment History
+    path('schools/<int:school_pk>/assignment/add/', views.AssignmentHistoryAddView.as_view(), name='assignment_add'),
+    path('schools/<int:school_pk>/assignment/<int:pk>/edit/', views.AssignmentHistoryEditView.as_view(), name='assignment_edit'),
+    path('schools/<int:school_pk>/assignment/<int:pk>/delete/', views.AssignmentHistoryDeleteView.as_view(), name='assignment_delete'),
 ]

@@ -4,8 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import PasswordChangeView
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
-from .models import School, Person, Activity, LeadershipAward
-from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm
+from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory
+from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.contrib import messages
@@ -687,3 +687,89 @@ class AwardDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
             except Exception:
                 pass
         return False
+
+
+# ── Principal Assignment History CRUD ────────────────────────────────────────
+
+class AssignmentHistoryMixin(UserPassesTestMixin):
+    """Allows admin/superuser OR the current principal of the school."""
+    def _get_school(self):
+        school_pk = self.kwargs.get('school_pk')
+        return get_object_or_404(School, pk=school_pk)
+
+    def test_func(self):
+        user = self.request.user
+        if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
+            return True
+        if getattr(user, 'role', None) == 'PRINCIPAL':
+            school = self._get_school()
+            return school.principal == user
+        return False
+
+
+class AssignmentHistoryAddView(LoginRequiredMixin, AssignmentHistoryMixin, CreateView):
+    model = SchoolPrincipalHistory
+    form_class = SchoolPrincipalHistoryForm
+    template_name = 'ldp_core/assignment_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['school'] = self._get_school()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['school'] = self._get_school()
+        ctx['is_add'] = True
+        return ctx
+
+    def form_valid(self, form):
+        school = self._get_school()
+        entry = form.save(commit=False)
+        entry.school = school
+        # Auto-fill principal_name from selected principal user if not provided
+        if entry.principal and not entry.principal_name:
+            entry.principal_name = entry.principal.get_full_name() or entry.principal.username
+        entry.save()
+        messages.success(self.request, 'Assignment entry added successfully.')
+        return redirect('ldp_core:school_detail', pk=school.pk)
+
+
+class AssignmentHistoryEditView(LoginRequiredMixin, AssignmentHistoryMixin, UpdateView):
+    model = SchoolPrincipalHistory
+    form_class = SchoolPrincipalHistoryForm
+    template_name = 'ldp_core/assignment_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['school'] = self._get_school()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['school'] = self._get_school()
+        ctx['is_add'] = False
+        return ctx
+
+    def form_valid(self, form):
+        school = self._get_school()
+        entry = form.save(commit=False)
+        # Sync principal_name if principal changed
+        if entry.principal and not entry.principal_name:
+            entry.principal_name = entry.principal.get_full_name() or entry.principal.username
+        entry.save()
+        messages.success(self.request, 'Assignment entry updated.')
+        return redirect('ldp_core:school_detail', pk=school.pk)
+
+
+class AssignmentHistoryDeleteView(LoginRequiredMixin, AssignmentHistoryMixin, DeleteView):
+    model = SchoolPrincipalHistory
+    template_name = 'ldp_core/assignment_confirm_delete.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['school'] = self._get_school()
+        return ctx
+
+    def get_success_url(self):
+        return reverse_lazy('ldp_core:school_detail', kwargs={'pk': self.kwargs['school_pk']})

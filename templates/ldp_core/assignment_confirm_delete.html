@@ -1,0 +1,49 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}Delete Assignment Entry{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto space-y-6">
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'ldp_core:school_detail' school.pk %}"
+       class="h-9 w-9 inline-flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-navy hover:border-slate-300 shadow-sm transition">
+      <i class="fas fa-arrow-left text-sm"></i>
+    </a>
+    <div>
+      <h2 class="text-xl font-bold text-navy tracking-tight">Delete Assignment Entry</h2>
+      <p class="text-xs text-secondary mt-0.5"><i class="fas fa-school mr-1"></i>{{ school.name }}</p>
+    </div>
+  </div>
+
+  <div class="glass-card p-6 border-l-4 border-red-400">
+    <div class="flex items-start gap-4">
+      <div class="h-12 w-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+        <i class="fas fa-exclamation-triangle text-xl"></i>
+      </div>
+      <div>
+        <h3 class="font-bold text-navy text-base mb-1">Confirm Deletion</h3>
+        <p class="text-sm text-secondary">
+          You are about to delete the assignment record for
+          <strong class="text-navy">{{ object.principal_name }}</strong>
+          (assigned {{ object.assigned_at|date:"M d, Y" }}{% if object.removed_at %}, removed {{ object.removed_at|date:"M d, Y" }}{% else %} — current{% endif %}).
+        </p>
+        <p class="text-xs text-red-600 mt-2 font-medium">This action cannot be undone.</p>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" class="flex items-center justify-end gap-3">
+    {% csrf_token %}
+    <a href="{% url 'ldp_core:school_detail' school.pk %}"
+       class="px-5 py-2.5 bg-white hover:bg-slate-50 text-navy font-semibold rounded-xl border border-slate-200 shadow-sm transition text-sm flex items-center gap-2">
+      <i class="fas fa-times text-secondary"></i> Cancel
+    </a>
+    <button type="submit"
+        class="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-sm transition text-sm flex items-center gap-2">
+      <i class="fas fa-trash-alt"></i> Delete Entry
+    </button>
+  </form>
+
+</div>
+{% endblock %}

@@ -1,7 +1,29 @@
 import re
 from django import forms
 from django.db import transaction
-from .models import Person, User, Activity, School, LeadershipAward
+from .models import Person, User, Activity, School, LeadershipAward, SchoolPrincipalHistory
+
+
+class SchoolPrincipalHistoryForm(forms.ModelForm):
+    class Meta:
+        model = SchoolPrincipalHistory
+        fields = ['principal', 'principal_name', 'assigned_at', 'removed_at', 'notes']
+        widgets = {
+            'assigned_at': forms.DateInput(attrs={'type': 'date'}),
+            'removed_at': forms.DateInput(attrs={'type': 'date'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, school=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if school:
+            # Only show principals associated with this school
+            self.fields['principal'].queryset = User.objects.filter(role='PRINCIPAL').order_by('last_name', 'first_name')
+        else:
+            self.fields['principal'].queryset = User.objects.filter(role='PRINCIPAL').order_by('last_name', 'first_name')
+        self.fields['principal'].required = False
+        self.fields['principal'].empty_label = '— Select a User —'
+        self.fields['removed_at'].required = False
 
 
 class LeadershipAwardForm(forms.ModelForm):
