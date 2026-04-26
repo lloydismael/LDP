@@ -183,6 +183,12 @@ class PersonDetailView(LoginRequiredMixin, DetailView):
     template_name = 'ldp_core/person_detail.html'
     context_object_name = 'person'
 
+    def get_context_data(self, **kwargs):
+        from datetime import date
+        ctx = super().get_context_data(**kwargs)
+        ctx['today'] = date.today()
+        return ctx
+
 class PersonCreateView(LoginRequiredMixin, PrincipalOrAdminMixin, CreateView):
     model = Person
     form_class = PersonCreateForm

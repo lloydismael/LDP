@@ -178,10 +178,12 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-400">{{ act.date }}</span>
-                            {% if act.is_approved %}
-                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-700">Approved</span>
+                            {% if act.date > today %}
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">Upcoming</span>
+                            {% elif act.date == today %}
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-700 animate-pulse">Ongoing</span>
                             {% else %}
-                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">Pending</span>
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-500">Completed</span>
                             {% endif %}
                         </div>
                     </div>
