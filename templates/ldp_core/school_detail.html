@@ -273,7 +273,7 @@
             {% if awards %}
             <div class="divide-y divide-slate-50">
                 {% for award in awards|slice:":8" %}
-                <div class="py-3 flex items-start gap-3 group">
+                <a href="{% url 'ldp_core:person_detail' award.recipient.pk %}" class="py-3 flex items-start gap-3 group hover:bg-amber-50/50 rounded-xl px-2 -mx-2 transition-colors">
                     {% if award.recipient.profile_photo %}
                     <img src="{{ award.recipient.profile_photo.url }}"
                          alt="{{ award.recipient.user.get_full_name }}"
@@ -284,7 +284,7 @@
                     </div>
                     {% endif %}
                     <div class="flex-1 min-w-0">
-                        <div class="font-semibold text-sm text-navy truncate">{{ award.recipient.user.get_full_name }}</div>
+                        <div class="font-semibold text-sm text-navy group-hover:text-amber-700 transition-colors truncate">{{ award.recipient.user.get_full_name }}</div>
                         <div class="text-xs text-secondary truncate">{{ award.award_title }}</div>
                         <div class="flex items-center gap-1.5 mt-1">
                             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded
@@ -298,10 +298,8 @@
                             <span class="text-[10px] text-slate-400">{{ award.year_awarded }}</span>
                         </div>
                     </div>
-                    <a href="{% url 'ldp_core:person_detail' award.recipient.pk %}" class="opacity-0 group-hover:opacity-100 h-7 w-7 rounded-lg inline-flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition shrink-0">
-                        <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
+                    <i class="fas fa-arrow-right text-xs text-slate-300 group-hover:text-amber-600 transition-colors shrink-0 mt-2"></i>
+                </a>
                 {% endfor %}
             </div>
             {% if school.awards.count > 8 %}
@@ -493,15 +491,16 @@
             {% if acts %}
             <div class="space-y-3">
                 {% for act in acts|slice:":6" %}
-                <div class="flex items-start gap-3">
+                <a href="{% url 'ldp_core:activity_detail' act.pk %}" class="flex items-start gap-3 rounded-xl hover:bg-violet-50 px-2 py-1.5 -mx-2 transition-colors group/act">
                     <div class="h-7 w-7 rounded-lg {% if act.is_approved %}bg-emerald-50 text-emerald-600{% else %}bg-amber-50 text-amber-600{% endif %} flex items-center justify-center shrink-0 mt-0.5">
                         <i class="fas {% if act.is_approved %}fa-check{% else %}fa-clock{% endif %} text-[10px]"></i>
                     </div>
-                    <div class="min-w-0">
-                        <div class="font-semibold text-sm text-navy truncate">{{ act.name }}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="font-semibold text-sm text-navy group-hover/act:text-primary transition-colors truncate">{{ act.name }}</div>
                         <div class="text-xs text-secondary">{{ act.date }}</div>
                     </div>
-                </div>
+                    <i class="fas fa-arrow-right text-xs text-slate-300 group-hover/act:text-primary transition-colors shrink-0 mt-1"></i>
+                </a>
                 {% endfor %}
                 {% if school.activities.count > 6 %}
                 <a href="{% url 'ldp_core:activity_list' %}" class="block text-center text-xs font-bold text-primary hover:underline pt-2 border-t border-slate-100">
