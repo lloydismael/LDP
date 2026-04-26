@@ -174,7 +174,7 @@
       <p class="text-sm text-gray-500">Showing <span class="font-semibold text-gray-700">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span> of <span class="font-semibold text-gray-700">{{ paginator.count }}</span> users</p>
       <div class="flex items-center gap-1">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium"><i class="fas fa-chevron-left mr-1 text-xs"></i> Prev</a>
+        <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium"><i class="fas fa-chevron-left mr-1 text-xs"></i> Prev</a>
         {% endif %}
         {% for num in paginator.page_range %}
           {% if num == page_obj.number %}
@@ -184,7 +184,7 @@
           {% endif %}
         {% endfor %}
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium">Next <i class="fas fa-chevron-right ml-1 text-xs"></i></a>
+        <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium">Next <i class="fas fa-chevron-right ml-1 text-xs"></i></a>
         {% endif %}
       </div>
     </div>

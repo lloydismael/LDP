@@ -133,6 +133,160 @@
             transform: translateY(-50%) scaleY(1);
             opacity: 1;
         }
+
+        /* =============================================
+           GLOBAL BOUNCY SPRING ANIMATION SYSTEM
+           ============================================= */
+
+        /* --- Glass Card base style --- */
+        .glass-card {
+            background: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px -4px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+            border: 1px solid rgba(226,232,240,0.8);
+            padding: 1.25rem;
+        }
+
+        /* Page content entrance */
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .content {
+            animation: pageIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        /* Glass card hover — anchor cards only (clickable cards) */
+        a.glass-card {
+            display: block;
+            text-decoration: none;
+            transition:
+                transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+            will-change: transform;
+        }
+        a.glass-card:hover {
+            transform: translateY(-6px) scale(1.025);
+            box-shadow: 0 16px 40px -8px rgba(79,70,229,0.2), 0 4px 12px -4px rgba(0,0,0,0.08);
+        }
+        a.glass-card:active {
+            transform: scale(0.98);
+            transition-duration: 0.12s;
+        }
+
+        /* Submit / primary buttons spring press */
+        button[type="submit"] {
+            transition:
+                transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.25s ease,
+                background-color 0.2s ease;
+            will-change: transform;
+        }
+        button[type="submit"]:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 8px 22px -5px rgba(79,70,229,0.4);
+        }
+        button[type="submit"]:active {
+            transform: scale(0.96);
+            transition-duration: 0.1s;
+        }
+
+        /* Action icon buttons (list pages) */
+        .action-btn {
+            transition:
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background-color 0.2s ease,
+                color 0.2s ease,
+                box-shadow 0.2s ease;
+            will-change: transform;
+        }
+        .action-btn:hover {
+            transform: scale(1.2) translateY(-1px);
+        }
+        .action-btn:active {
+            transform: scale(0.9);
+            transition-duration: 0.1s;
+        }
+
+        /* Table rows — subtle slide on hover */
+        tbody tr {
+            transition:
+                background-color 0.2s ease,
+                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.2s ease;
+        }
+        tbody tr:hover {
+            transform: translateX(3px);
+            box-shadow: -3px 0 0 0 #4F46E5;
+        }
+
+        /* Staggered card / row entrance in lists */
+        @keyframes itemSlideIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .anim-item {
+            animation: itemSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .anim-item:nth-child(1)  { animation-delay: 0.03s; }
+        .anim-item:nth-child(2)  { animation-delay: 0.07s; }
+        .anim-item:nth-child(3)  { animation-delay: 0.11s; }
+        .anim-item:nth-child(4)  { animation-delay: 0.15s; }
+        .anim-item:nth-child(5)  { animation-delay: 0.19s; }
+        .anim-item:nth-child(6)  { animation-delay: 0.23s; }
+        .anim-item:nth-child(7)  { animation-delay: 0.27s; }
+        .anim-item:nth-child(8)  { animation-delay: 0.31s; }
+
+        /* Form inputs — smooth glow focus */
+        input[type="text"], input[type="email"], input[type="date"],
+        input[type="password"], input[type="number"], textarea, select {
+            transition:
+                border-color 0.25s ease,
+                box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="date"]:focus,
+        input[type="password"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+            transform: scale(1.01);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.15), 0 2px 8px -2px rgba(79,70,229,0.2);
+            outline: none;
+        }
+
+        /* Topbar profile pill spring */
+        header a {
+            transition:
+                transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background-color 0.2s ease;
+        }
+        header a:hover {
+            transform: translateY(-2px) scale(1.04);
+        }
+        header a:active {
+            transform: scale(0.97);
+            transition-duration: 0.1s;
+        }
+
+        /* Pagination buttons */
+        .page-btn {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+        }
+        .page-btn:hover {
+            transform: translateY(-2px) scale(1.08);
+        }
+        .page-btn:active {
+            transform: scale(0.94);
+            transition-duration: 0.1s;
+        }
+
+        /* Badge / pill micro-bounce on appear */
+        @keyframes badgePop {
+            0%   { transform: scale(0.7); opacity: 0; }
+            70%  { transform: scale(1.12); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        .badge-pop {
+            animation: badgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans tracking-normal leading-normal">
