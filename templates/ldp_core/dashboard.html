@@ -49,7 +49,7 @@
             <i class="fas fa-school"></i>
         </div>
         <div>
-            <p class="text-sm font-medium text-secondary">Active Schools</p>
+            <p class="text-sm font-medium text-secondary">{% if user.role == 'ADMIN' or user.is_superuser %}Active Schools{% else %}My School{% endif %}</p>
             <h4 class="text-2xl font-bold text-navy">{{ schools_count }}</h4>
         </div>
     </a>
@@ -60,7 +60,7 @@
             <i class="fas fa-calendar-check"></i>
         </div>
         <div>
-            <p class="text-sm font-medium text-secondary">Events & Activities</p>
+            <p class="text-sm font-medium text-secondary">{% if user.role == 'ADMIN' or user.is_superuser %}Events & Activities{% else %}School Events & Activities{% endif %}</p>
             <h4 class="text-2xl font-bold text-navy">{{ activities_count }}</h4>
         </div>
     </a>
@@ -156,7 +156,7 @@
             <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-emerald-600">
                 <i class="fas fa-medal text-xl"></i>
             </div>
-            <span class="font-bold text-navy text-sm text-center leading-tight">School Awards</span>
+            <span class="font-bold text-navy text-sm text-center leading-tight">School Awardees</span>
         </a>
         <a href="{% url 'ldp_core:profile' %}" class="qa-card group bg-slate-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-slate-100/60">
             <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-slate-500">
@@ -250,7 +250,7 @@
             <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-blue-600">
                 <i class="fas fa-school text-xl"></i>
             </div>
-            <span class="font-bold text-navy text-sm text-center leading-tight">Browse Schools</span>
+            <span class="font-bold text-navy text-sm text-center leading-tight">View My School</span>
         </a>
         <a href="{% url 'ldp_core:activity_list' %}" class="qa-card group bg-violet-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-violet-100/60">
             <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-violet-600">
@@ -262,7 +262,7 @@
             <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-amber-600">
                 <i class="fas fa-trophy text-xl"></i>
             </div>
-            <span class="font-bold text-navy text-sm text-center leading-tight">Awardees</span>
+            <span class="font-bold text-navy text-sm text-center leading-tight">School Awardees</span>
         </a>
         <a href="{% url 'ldp_core:profile' %}" class="qa-card group bg-slate-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-slate-100/60">
             <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-slate-500">
