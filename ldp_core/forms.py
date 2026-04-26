@@ -17,8 +17,11 @@ class SchoolPrincipalHistoryForm(forms.ModelForm):
     def __init__(self, *args, school=None, **kwargs):
         super().__init__(*args, **kwargs)
         if school:
-            # Only show principals associated with this school
-            self.fields['principal'].queryset = User.objects.filter(role='PRINCIPAL').order_by('last_name', 'first_name')
+            # Only show principals whose person profile is assigned to this school
+            self.fields['principal'].queryset = (
+                User.objects.filter(role='PRINCIPAL', person__school=school)
+                .order_by('last_name', 'first_name')
+            )
         else:
             self.fields['principal'].queryset = User.objects.filter(role='PRINCIPAL').order_by('last_name', 'first_name')
         self.fields['principal'].required = False
