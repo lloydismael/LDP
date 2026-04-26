@@ -70,23 +70,27 @@
 
       <!-- Destination School -->
       <div>
-        <label for="{{ form.to_school.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+        <label for="to-school-search" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
           Destination School <span class="text-red-400">*</span>
         </label>
-        <div class="relative">
-          <select name="{{ form.to_school.html_name }}" id="{{ form.to_school.id_for_label }}"
-              class="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
-            <option value="">— Select destination school —</option>
-            {% for val, label in form.to_school.field.choices %}
-              {% if val %}
-              <option value="{{ val }}" {% if form.to_school.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-              {% endif %}
-            {% endfor %}
-          </select>
+        <div class="relative" id="to-school-combo-wrap">
+          <i class="fas fa-school absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none z-10"></i>
+          <input type="text" id="to-school-search"
+              autocomplete="off"
+              placeholder="Type to search school…"
+              class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
           <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-            <i class="fas fa-chevron-down text-xs"></i>
+            <i class="fas fa-search text-xs"></i>
           </div>
+          <input type="hidden" name="{{ form.to_school.html_name }}" id="to-school-value"
+              value="{{ form.to_school.value|default:'' }}">
+          <ul id="to-school-dropdown"
+              class="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden text-sm">
+          </ul>
         </div>
+        <script id="to-school-data" type="application/json">[
+          {% for val, label in form.to_school.field.choices %}{% if val %}{"v":"{{ val }}","l":"{{ label|escapejs }}"}{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}
+        ]</script>
         {% if form.to_school.errors %}<p class="mt-1.5 text-xs text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.to_school.errors.0 }}</p>{% endif %}
       </div>
 
@@ -176,4 +180,65 @@
     </div>
   </form>
 </div>
+
+<script>
+(function () {
+    const dataEl = document.getElementById('to-school-data');
+    if (!dataEl) return;
+    const schools = JSON.parse(dataEl.textContent);
+    const searchInput = document.getElementById('to-school-search');
+    const valueInput  = document.getElementById('to-school-value');
+    const dropdown    = document.getElementById('to-school-dropdown');
+
+    // Pre-fill display if a value is already selected (e.g. form re-render after error)
+    const initialVal = valueInput.value;
+    if (initialVal) {
+        const match = schools.find(s => String(s.v) === String(initialVal));
+        if (match) searchInput.value = match.l;
+    }
+
+    function renderList(items) {
+        dropdown.innerHTML = '';
+        if (!items.length) {
+            const li = document.createElement('li');
+            li.className = 'px-4 py-2.5 text-slate-400 italic text-xs';
+            li.textContent = 'No schools found.';
+            dropdown.appendChild(li);
+        } else {
+            items.forEach(s => {
+                const li = document.createElement('li');
+                li.className = 'px-4 py-2.5 cursor-pointer hover:bg-indigo-50 hover:text-primary transition-colors truncate';
+                li.textContent = s.l;
+                li.dataset.value = s.v;
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    searchInput.value = s.l;
+                    valueInput.value  = s.v;
+                    dropdown.classList.add('hidden');
+                });
+                dropdown.appendChild(li);
+            });
+        }
+        dropdown.classList.remove('hidden');
+    }
+
+    searchInput.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        valueInput.value = '';
+        if (!q) { dropdown.classList.add('hidden'); return; }
+        renderList(schools.filter(s => s.l.toLowerCase().includes(q)));
+    });
+
+    searchInput.addEventListener('focus', function () {
+        const q = this.value.trim().toLowerCase();
+        if (q) renderList(schools.filter(s => s.l.toLowerCase().includes(q)));
+        else renderList(schools.slice(0, 10));
+    });
+
+    searchInput.addEventListener('blur', function () {
+        setTimeout(() => dropdown.classList.add('hidden'), 150);
+        if (!valueInput.value) searchInput.value = '';
+    });
+})();
+</script>
 {% endblock %}

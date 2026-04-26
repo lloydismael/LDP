@@ -79,9 +79,20 @@ class SchoolListView(LoginRequiredMixin, ListView):
         if user.is_superuser or user.role == 'ADMIN':
             qs = School.objects.filter(is_active=True)
         elif user.role == 'PRINCIPAL':
-            qs = School.objects.filter(principal=user, is_active=True)
-        elif hasattr(user, 'person') and user.person.school:
-            qs = School.objects.filter(pk=user.person.school.pk, is_active=True)
+            school_pks = set(School.objects.filter(principal=user, is_active=True).values_list('pk', flat=True))
+            if hasattr(user, 'person') and user.person:
+                if user.person.school:
+                    school_pks.add(user.person.school.pk)
+                prev_pks = user.person.transfer_history.filter(from_school__isnull=False).values_list('from_school', flat=True)
+                school_pks.update(prev_pks)
+            qs = School.objects.filter(pk__in=school_pks, is_active=True)
+        elif hasattr(user, 'person') and user.person:
+            school_pks = set()
+            if user.person.school:
+                school_pks.add(user.person.school.pk)
+            prev_pks = user.person.transfer_history.filter(from_school__isnull=False).values_list('from_school', flat=True)
+            school_pks.update(prev_pks)
+            qs = School.objects.filter(pk__in=school_pks, is_active=True) if school_pks else School.objects.none()
         else:
             return School.objects.none()
         q = self.request.GET.get('q', '').strip()
@@ -104,6 +115,13 @@ class SchoolListView(LoginRequiredMixin, ListView):
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['current_sort'] = self.request.GET.get('sort', 'name')
         ctx['current_dir'] = self.request.GET.get('dir', 'asc')
+        user = self.request.user
+        if not (user.is_superuser or user.role == 'ADMIN') and hasattr(user, 'person') and user.person:
+            ctx['current_school_id'] = user.person.school.pk if user.person.school else None
+            ctx['previous_school_ids'] = set(
+                user.person.transfer_history.filter(from_school__isnull=False)
+                .values_list('from_school', flat=True)
+            )
         return ctx
 
 class SchoolCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
@@ -164,6 +182,9 @@ class PersonListView(LoginRequiredMixin, ListView):
                 Q(user__username__icontains=q) | Q(school__name__icontains=q) |
                 Q(type__icontains=q)
             )
+        school_filter = self.request.GET.get('school', '').strip()
+        if school_filter:
+            qs = qs.filter(school__pk=school_filter)
         sort = self.request.GET.get('sort', 'name')
         direction = self.request.GET.get('dir', 'asc')
         sort_map = {'name': 'user__last_name', 'type': 'type', 'school': 'school__name'}
@@ -177,6 +198,12 @@ class PersonListView(LoginRequiredMixin, ListView):
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['current_sort'] = self.request.GET.get('sort', 'name')
         ctx['current_dir'] = self.request.GET.get('dir', 'asc')
+        ctx['school_filter'] = self.request.GET.get('school', '')
+        user = self.request.user
+        if user.is_superuser or user.role == 'ADMIN':
+            ctx['school_options'] = list(
+                School.objects.filter(is_active=True).order_by('name').values('pk', 'name')
+            )
         return ctx
 class PersonDetailView(LoginRequiredMixin, DetailView):
     model = Person
@@ -778,10 +805,31 @@ class AssignmentHistoryDeleteView(LoginRequiredMixin, AssignmentHistoryMixin, De
 # ── Person Transfer CRUD ──────────────────────────────────────────────────────
 
 class TransferMixin(UserPassesTestMixin):
-    """Admin/superuser only."""
+    """Admin/superuser, or a Principal managing the person's current school."""
+    def _get_transfer_person(self):
+        person_pk = self.kwargs.get('person_pk')
+        if person_pk:
+            return get_object_or_404(Person, pk=person_pk)
+        # For edit/delete, get person from the transfer record
+        obj = self.get_object()
+        return obj.person
+
     def test_func(self):
         user = self.request.user
-        return user.is_superuser or getattr(user, 'role', None) == 'ADMIN'
+        if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
+            return True
+        if getattr(user, 'role', None) == 'PRINCIPAL':
+            try:
+                person = self._get_transfer_person()
+            except Exception:
+                return False
+            # Principals cannot transfer admins or superusers
+            if person.user and (person.user.is_superuser or getattr(person.user, 'role', None) == 'ADMIN'):
+                return False
+            # Principal must manage the person's current school
+            if person.school and person.school.principal == user:
+                return True
+        return False
 
 
 class PersonTransferView(LoginRequiredMixin, TransferMixin, CreateView):

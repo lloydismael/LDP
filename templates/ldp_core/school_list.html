@@ -82,9 +82,20 @@
                                     {% endif %}
                                 </div>
                                 <div class="min-w-0">
-                                    <a href="{% url 'ldp_core:school_detail' school.pk %}" class="font-bold text-sm {% if school.banner %}text-white hover:text-blue-200{% else %}text-slate-800 hover:text-primary{% endif %} hover:underline transition-colors line-clamp-1">
-                                        {{ school.name }}
-                                    </a>
+                                    <div class="flex items-center flex-wrap gap-1.5 mb-0.5">
+                                        <a href="{% url 'ldp_core:school_detail' school.pk %}" class="font-bold text-sm {% if school.banner %}text-white hover:text-blue-200{% else %}text-slate-800 hover:text-primary{% endif %} hover:underline transition-colors line-clamp-1">
+                                            {{ school.name }}
+                                        </a>
+                                        {% if current_school_id == school.pk %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white shadow-sm">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-white/80"></span> Current
+                                        </span>
+                                        {% elif previous_school_ids and school.pk in previous_school_ids %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-400 text-white shadow-sm">
+                                            <i class="fas fa-history text-[8px]"></i> Previous
+                                        </span>
+                                        {% endif %}
+                                    </div>
                                     {% if school.school_id %}
                                     <div class="text-xs {% if school.banner %}text-white/60{% else %}text-secondary{% endif %} font-medium">ID: {{ school.school_id }}</div>
                                     {% endif %}

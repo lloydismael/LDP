@@ -389,7 +389,7 @@
                 </h4>
                 <div class="flex flex-col gap-2">
 
-                {% if user.is_superuser or user.role == 'ADMIN' %}
+                {% if user.is_superuser or user.role == 'ADMIN' or user.role == 'PRINCIPAL' and person.school and person.school.principal == user and not person.user.is_superuser and person.user.role != 'ADMIN' %}
                 <a href="{% url 'ldp_core:transfer_add' person.pk %}"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 text-sm font-semibold transition group">
                     <div class="h-7 w-7 rounded-lg bg-violet-100 group-hover:bg-violet-200 flex items-center justify-center shrink-0">
