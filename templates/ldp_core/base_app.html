@@ -208,16 +208,15 @@
             transition-duration: 0.1s;
         }
 
-        /* Table rows — subtle slide on hover */
+        /* Table rows — inset left accent on hover, no transform (avoids scroll jitter) */
         tbody tr {
             transition:
                 background-color 0.2s ease,
-                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
                 box-shadow 0.2s ease;
         }
         tbody tr:hover {
-            transform: translateX(3px);
-            box-shadow: -3px 0 0 0 #4F46E5;
+            background-color: rgba(79, 70, 229, 0.04);
+            box-shadow: inset 3px 0 0 0 #4F46E5;
         }
 
         /* Staggered card / row entrance in lists */
@@ -287,16 +286,11 @@
         .badge-pop {
             animation: badgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
-        /* Table scroll wrapper – invisible scrollbar track when no overflow */
+        /* Table scroll wrapper – only shows scrollbar when content overflows */
         .table-wrap {
             overflow-x: auto;
-            scrollbar-width: thin;
-            scrollbar-color: transparent transparent;
         }
-        .table-wrap:hover {
-            scrollbar-color: #cbd5e1 transparent;
-        }
-        .table-wrap::-webkit-scrollbar { height: 4px; }
+        .table-wrap::-webkit-scrollbar { height: 5px; }
         .table-wrap::-webkit-scrollbar-track { background: transparent; }
         .table-wrap::-webkit-scrollbar-thumb {
             background: transparent;
