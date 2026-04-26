@@ -104,11 +104,12 @@
           <td class="py-3 px-4 text-right">
             <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {% if award.certificate %}
-              <a href="{{ award.certificate.url }}" target="_blank"
+              <button type="button"
+                 onclick="openCertModal('{{ award.certificate.url }}', '{{ award.award_title|escapejs }} — {{ award.recipient.user.get_full_name|escapejs }}')"
                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-amber-400 hover:to-orange-500 transition"
                  title="View Certificate">
                 <i class="fas fa-certificate text-sm"></i>
-              </a>
+              </button>
               {% endif %}
               {% if can_manage %}
               <a href="{% url 'ldp_core:award_update' award.pk %}"
@@ -166,6 +167,29 @@
   </div>
   {% endif %}
 </div>
+<!-- Certificate Lightbox Modal -->
+<div id="cert-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true">
+  <!-- Backdrop -->
+  <div id="cert-backdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeCertModal()"></div>
+  <!-- Panel -->
+  <div class="relative z-10 bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-certificate text-amber-500"></i>
+        <span id="cert-title" class="text-sm font-bold text-navy truncate"></span>
+      </div>
+      <button onclick="closeCertModal()" class="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <!-- Image -->
+    <div class="flex items-center justify-center bg-gray-50 p-4 max-h-[75vh] overflow-auto">
+      <img id="cert-img" src="" alt="Certificate" class="max-w-full max-h-[68vh] object-contain rounded-lg shadow">
+    </div>
+  </div>
+</div>
+
 <script>
 function sortTable(field) {
     const url = new URL(window.location.href);
@@ -176,5 +200,26 @@ function sortTable(field) {
     url.searchParams.delete('page');
     window.location = url.toString();
 }
+
+function openCertModal(url, title) {
+    document.getElementById('cert-img').src = url;
+    document.getElementById('cert-title').textContent = title;
+    const modal = document.getElementById('cert-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCertModal() {
+    const modal = document.getElementById('cert-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+    document.getElementById('cert-img').src = '';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeCertModal();
+});
 </script>
 {% endblock %}
