@@ -53,7 +53,7 @@
         <tr class="group">
           <!-- Recipient -->
           <td class="py-3 px-4">
-            <div class="flex items-center gap-3">
+            <a href="{% url 'ldp_core:person_detail' award.recipient.pk %}" class="flex items-center gap-3 group/rec">
               {% if award.recipient.profile_photo %}
               <img src="{{ award.recipient.profile_photo.url }}" alt="{{ award.recipient }}"
                    class="w-9 h-9 rounded-full object-cover border border-gray-200 shrink-0">
@@ -63,10 +63,10 @@
               </div>
               {% endif %}
               <div>
-                <p class="font-semibold text-navy text-sm leading-tight">{{ award.recipient.user.get_full_name|default:award.recipient.user.username }}</p>
+                <p class="font-semibold text-navy text-sm leading-tight group-hover/rec:text-primary transition">{{ award.recipient.user.get_full_name|default:award.recipient.user.username }}</p>
                 <p class="text-xs text-gray-400">{{ award.recipient.get_type_display }}</p>
               </div>
-            </div>
+            </a>
           </td>
           <!-- Award title -->
           <td class="py-3 px-4">

@@ -76,14 +76,14 @@
                 </div>
                 <!-- Name & username -->
                 <div>
-                  <div class="text-sm font-semibold text-navy flex items-center gap-2">
+                  <a href="{% url 'ldp_core:person_detail' p.pk %}" class="text-sm font-semibold text-navy hover:text-primary transition flex items-center gap-2">
                     {{ p.user.get_full_name|default:p.user.username }}
                     {% if p.is_pending_approval %}
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
                       <i class="fas fa-clock text-[8px]"></i> Pending
                     </span>
                     {% endif %}
-                  </div>
+                  </a>
                   <div class="text-xs text-gray-400 font-mono mt-0.5">@{{ p.user.username }}</div>
                 </div>
               </div>
