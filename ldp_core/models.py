@@ -162,6 +162,7 @@ class Person(models.Model):
     
     # Profile Extensions
     profile_photo = models.ImageField(upload_to='profiles/', blank=True, null=True)
+    banner = models.ImageField(upload_to='profiles/banners/', blank=True, null=True, verbose_name='Profile Banner')
     contact_number = models.CharField(max_length=50, blank=True)
     address = models.TextField(blank=True)
     bio = models.TextField(blank=True)

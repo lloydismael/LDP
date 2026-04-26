@@ -57,7 +57,6 @@
                     <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('date')"><div class="inline-flex items-center gap-1">Date <span class="text-[10px] {% if current_sort == 'date' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'date' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
                     <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase">Participants</th>
                     <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('school')"><div class="inline-flex items-center gap-1">Schedule <span class="text-[10px] {% if current_sort == 'school' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'school' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
-                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('approval')"><div class="inline-flex items-center gap-1">Approval <span class="text-[10px] {% if current_sort == 'approval' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'approval' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
                     <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase text-right">Actions</th>
                 </tr>
             </thead>
@@ -95,46 +94,14 @@
                         </span>
                         {% endif %}
                     </td>
-                    <!-- Approval status -->
-                    <td class="py-4 px-4">
-                        {% if a.is_approved %}
-                            <div class="flex flex-col gap-0.5">
-                                <span class="bg-green-50 text-accent-green font-bold px-2 py-1 rounded w-max text-xs">
-                                    <i class="fas fa-check-circle mr-1"></i> Approved
-                                </span>
-                                <span class="text-[10px] font-medium text-secondary">by {{ a.approved_by|default:"System" }}</span>
-                            </div>
-                        {% else %}
-                            <span class="bg-yellow-50 text-accent-orange font-bold px-2 py-1 rounded w-max text-xs">
-                                <i class="fas fa-clock mr-1"></i> Pending
-                            </span>
-                        {% endif %}
-                    </td>
                     <td class="py-4 px-4 text-right">
                         <div class="flex justify-end gap-1 transition-opacity">
-                            <!-- View details — always visible for anyone who can see this row -->
+                            <!-- View details -->
                             <a href="{% url 'ldp_core:activity_detail' a.pk %}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-violet-500 hover:to-indigo-600 shadow-sm hover:shadow transition-all duration-300">
                                 <i class="fas fa-eye"></i>
                                 <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">View</span>
                             </a>
 
-                            {% if user.role == 'PRINCIPAL' and a.school and a.school.principal == user %}
-                                <form action="{% url 'ldp_core:activity_approve' a.pk %}" method="post" class="inline m-0 p-0">
-                                    {% csrf_token %}
-                                    {% if a.is_approved %}
-                                        <button type="submit" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-accent-purple hover:text-white hover:bg-gradient-to-br hover:from-purple-500 hover:to-indigo-500 shadow-sm hover:shadow transition-all duration-300">
-                                            <i class="fas fa-times"></i>
-                                            <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">Revoke</span>
-                                        </button>
-                                    {% else %}
-                                        <button type="submit" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-accent-green hover:text-white hover:bg-gradient-to-br hover:from-green-400 hover:to-emerald-600 shadow-sm hover:shadow transition-all duration-300">
-                                            <i class="fas fa-check"></i>
-                                            <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">Approve</span>
-                                        </button>
-                                    {% endif %}
-                                </form>
-                            {% endif %}
-                            
                             {% if user.role == 'ADMIN' or user.is_superuser or user.role == 'PRINCIPAL' and a.school and a.school.principal == user %}
                                 <a href="{% url 'ldp_core:activity_update' a.pk %}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-blue-500 hover:to-cyan-500 shadow-sm hover:shadow transition-all duration-300">
                                     <i class="fas fa-edit"></i>
@@ -150,7 +117,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="py-12 px-6 text-center">
+                    <td colspan="5" class="py-12 px-6 text-center">
                         <div class="flex flex-col items-center justify-center">
                             <div class="p-4 rounded-full bg-lightbg text-secondary mb-3">
                                 <i class="fas fa-folder-open text-2xl"></i>

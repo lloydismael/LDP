@@ -4,6 +4,33 @@
 {% block page_title_dup %}Dashboard{% endblock %}
 
 {% block content %}
+<style>
+.qa-card {
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease,
+                background-color 0.2s ease;
+    will-change: transform;
+}
+.qa-card:hover {
+    transform: translateY(-6px) scale(1.04);
+    box-shadow: 0 12px 28px -6px rgba(79,70,229,0.18);
+}
+.qa-card:active {
+    transform: scale(0.97);
+    transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes qaIconBounce {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.25) rotate(-8deg); }
+    65%  { transform: scale(0.92) rotate(4deg); }
+    80%  { transform: scale(1.08) rotate(-2deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+.qa-card:hover .qa-icon {
+    animation: qaIconBounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+</style>
+
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
     <!-- Stat 1 -->
     <a href="{% url 'ldp_core:person_list' %}" class="glass-card flex items-center gap-4 group hover:scale-[1.02] transition-transform cursor-pointer">
@@ -57,46 +84,194 @@
 </div>
 {% endif %}
 
+<!-- Quick Actions -->
 <div class="glass-card">
-    <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-bold text-navy">Quick Actions</h3>
+    <div class="flex justify-between items-center mb-5">
+        <h3 class="text-lg font-bold text-navy flex items-center gap-2">
+            <i class="fas fa-bolt text-amber-500 text-base"></i> Quick Actions
+        </h3>
     </div>
+
+    {% if user.role == 'ADMIN' or user.is_superuser %}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {% if user.role == 'ADMIN' or user.is_superuser %}
-        <a href="{% url 'ldp_core:school_create' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-primary transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
-            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-accent-blue group-hover:text-primary transition-colors">
+        <a href="{% url 'ldp_core:school_create' %}" class="qa-card group bg-indigo-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-indigo-100/60">
+            <div class="qa-icon bg-white w-13 h-13 w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-indigo-600">
                 <i class="fas fa-plus-circle text-xl"></i>
             </div>
-            <span class="font-bold text-navy group-hover:text-white transition-colors">Add School</span>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Add School</span>
         </a>
-        <a href="{% url 'ldp_core:person_create' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-accent-green transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
-            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-accent-green group-hover:text-accent-green transition-colors">
+        <a href="{% url 'ldp_core:person_create' %}" class="qa-card group bg-emerald-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-emerald-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-emerald-600">
                 <i class="fas fa-user-plus text-xl"></i>
             </div>
-            <span class="font-bold text-navy group-hover:text-white transition-colors">Add User</span>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Add User</span>
         </a>
-        <a href="{% url 'ldp_core:activity_create' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-accent-purple transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
-            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-accent-purple group-hover:text-accent-purple transition-colors">
+        <a href="{% url 'ldp_core:activity_create' %}" class="qa-card group bg-violet-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-violet-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-violet-600">
                 <i class="fas fa-calendar-plus text-xl"></i>
             </div>
-            <span class="font-bold text-navy group-hover:text-white transition-colors">Create Activity</span>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Create Activity</span>
         </a>
-        <a href="{% url 'ldp_core:profile' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-accent-orange transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
-            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-accent-orange group-hover:text-accent-orange transition-colors">
-                <i class="fas fa-id-badge text-xl"></i>
-            </div>
-            <span class="font-bold text-navy group-hover:text-white transition-colors">Update Profile</span>
-        </a>
-        <a href="{% url 'ldp_core:change_management' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-yellow-500 transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
-            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-yellow-500 group-hover:text-yellow-500 transition-colors relative">
+        <a href="{% url 'ldp_core:change_management' %}" class="qa-card group bg-amber-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-amber-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-amber-600 relative">
                 <i class="fas fa-tasks text-xl"></i>
                 {% if pending_changes_count > 0 %}
                 <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center">{{ pending_changes_count }}</span>
                 {% endif %}
             </div>
-            <span class="font-bold text-navy group-hover:text-white transition-colors">Change Mgmt</span>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Change Mgmt</span>
+        </a>
+    </div>
+
+    {% elif user.role == 'PRINCIPAL' %}
+    {% with person=user.person %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% if person.school %}
+        <a href="{% url 'ldp_core:school_detail' person.school.pk %}" class="qa-card group bg-blue-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-blue-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-blue-600">
+                <i class="fas fa-school text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">My School</span>
         </a>
         {% endif %}
+        <a href="{% url 'ldp_core:activity_create' %}" class="qa-card group bg-violet-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-violet-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-violet-600">
+                <i class="fas fa-calendar-plus text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Create Activity</span>
+        </a>
+        <a href="{% url 'ldp_core:award_create' %}" class="qa-card group bg-amber-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-amber-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-amber-600">
+                <i class="fas fa-trophy text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Record Award</span>
+        </a>
+        <a href="{% url 'ldp_core:person_list' %}" class="qa-card group bg-cyan-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-cyan-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-cyan-600">
+                <i class="fas fa-users text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">View Members</span>
+        </a>
+        <a href="{% url 'ldp_core:award_list' %}" class="qa-card group bg-emerald-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-emerald-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-emerald-600">
+                <i class="fas fa-medal text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">School Awards</span>
+        </a>
+        <a href="{% url 'ldp_core:profile' %}" class="qa-card group bg-slate-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-slate-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-slate-500">
+                <i class="fas fa-id-badge text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">My Profile</span>
+        </a>
     </div>
+    {% endwith %}
+
+    {% elif user.role == 'SCHOLAR' or user.role == 'ENCODER' %}
+    {% with person=user.person %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% if person.school %}
+        <a href="{% url 'ldp_core:school_detail' person.school.pk %}" class="qa-card group bg-blue-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-blue-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-blue-600">
+                <i class="fas fa-school text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">My School</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'ldp_core:activity_list' %}" class="qa-card group bg-violet-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-violet-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-violet-600">
+                <i class="fas fa-calendar-alt text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Browse Activities</span>
+        </a>
+        <a href="{% url 'ldp_core:award_list' %}" class="qa-card group bg-amber-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-amber-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-amber-600">
+                <i class="fas fa-trophy text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">School Awardees</span>
+        </a>
+        <a href="{% url 'ldp_core:person_list' %}" class="qa-card group bg-cyan-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-cyan-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-cyan-600">
+                <i class="fas fa-users text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Browse Members</span>
+        </a>
+        <a href="{% url 'ldp_core:profile' %}" class="qa-card group bg-slate-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-slate-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-slate-500">
+                <i class="fas fa-id-badge text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">My Profile</span>
+        </a>
+    </div>
+    {% endwith %}
+
+    {% elif user.role == 'PROFESSIONAL' %}
+    {% with person=user.person %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% if person.school %}
+        <a href="{% url 'ldp_core:school_detail' person.school.pk %}" class="qa-card group bg-purple-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-purple-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-purple-600">
+                <i class="fas fa-building text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">My Organization</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'ldp_core:activity_list' %}" class="qa-card group bg-violet-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-violet-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-violet-600">
+                <i class="fas fa-calendar-alt text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Browse Activities</span>
+        </a>
+        <a href="{% url 'ldp_core:award_list' %}" class="qa-card group bg-amber-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-amber-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-amber-600">
+                <i class="fas fa-trophy text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">View Awardees</span>
+        </a>
+        <a href="{% url 'ldp_core:person_list' %}" class="qa-card group bg-cyan-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-cyan-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-cyan-600">
+                <i class="fas fa-user-tie text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Browse Professionals</span>
+        </a>
+        <a href="{% url 'ldp_core:profile' %}" class="qa-card group bg-slate-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-slate-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-slate-500">
+                <i class="fas fa-id-badge text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">My Profile</span>
+        </a>
+    </div>
+    {% endwith %}
+
+    {% else %}
+    {# VIEWER and any other role #}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="{% url 'ldp_core:school_list' %}" class="qa-card group bg-blue-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-blue-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-blue-600">
+                <i class="fas fa-school text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Browse Schools</span>
+        </a>
+        <a href="{% url 'ldp_core:activity_list' %}" class="qa-card group bg-violet-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-violet-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-violet-600">
+                <i class="fas fa-calendar-alt text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Activities</span>
+        </a>
+        <a href="{% url 'ldp_core:award_list' %}" class="qa-card group bg-amber-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-amber-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-amber-600">
+                <i class="fas fa-trophy text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">Awardees</span>
+        </a>
+        <a href="{% url 'ldp_core:profile' %}" class="qa-card group bg-slate-50 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer border border-slate-100/60">
+            <div class="qa-icon bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm text-slate-500">
+                <i class="fas fa-id-badge text-xl"></i>
+            </div>
+            <span class="font-bold text-navy text-sm text-center leading-tight">My Profile</span>
+        </a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
+

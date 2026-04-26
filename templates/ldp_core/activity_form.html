@@ -244,72 +244,8 @@
 
         </div>
 
-        <!-- RIGHT: Approval (admin only) + Actions -->
+        <!-- RIGHT: Actions -->
         <div class="flex flex-col gap-6">
-
-            {% if not is_principal %}
-            <!-- Approval Status — admin only -->
-            <div class="glass-card p-6">
-                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
-                    <div class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <i class="fas fa-check-shield text-sm"></i>
-                    </div>
-                    <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Approval</h3>
-                </div>
-
-                <!-- is_approved toggle -->
-                <div class="mb-5">
-                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-2">Approval Status</label>
-                    <label class="relative inline-flex items-center cursor-pointer gap-3">
-                        <input type="checkbox"
-                            name="{{ form.is_approved.html_name }}"
-                            id="{{ form.is_approved.id_for_label }}"
-                            {% if form.is_approved.value %}checked{% endif %}
-                            class="sr-only peer"
-                            onchange="toggleApprovalField(this.checked)">
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                        <span class="text-sm font-semibold text-navy" id="approvalLabel">
-                            {% if form.is_approved.value %}Approved{% else %}Pending{% endif %}
-                        </span>
-                    </label>
-                </div>
-
-                <!-- Approved By -->
-                <div id="approvedByWrapper" {% if not form.is_approved.value %}class="opacity-50 pointer-events-none"{% endif %}>
-                    <label for="{{ form.approved_by.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
-                        Approved By
-                    </label>
-                    <div class="relative">
-                        <select name="{{ form.approved_by.html_name }}" id="{{ form.approved_by.id_for_label }}"
-                            class="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
-                            <option value="">— Select Principal —</option>
-                            {% for val, label in form.approved_by.field.choices %}
-                                {% if val %}
-                                <option value="{{ val }}" {% if form.approved_by.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-                                {% endif %}
-                            {% endfor %}
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-                            <i class="fas fa-chevron-down text-xs"></i>
-                        </div>
-                    </div>
-                    {% if form.approved_by.errors %}
-                    <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.approved_by.errors.0 }}</p>
-                    {% endif %}
-                </div>
-            </div>
-            {% else %}
-            <!-- Principal: auto-approved notice -->
-            <div class="glass-card p-5 border-l-4 border-emerald-400 bg-emerald-50/60">
-                <div class="flex items-start gap-3">
-                    <i class="fas fa-circle-check text-emerald-500 mt-0.5"></i>
-                    <div>
-                        <p class="text-sm font-semibold text-emerald-700">Auto-Approved</p>
-                        <p class="text-xs text-emerald-600 mt-0.5">Activities you create are automatically approved for your school.</p>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
 
             <!-- Tip Card -->
             <div class="glass-card p-5 bg-slate-50/60">
@@ -320,7 +256,7 @@
                     <li class="flex items-start gap-2"><i class="fas fa-circle-info text-primary/60 w-4 mt-0.5"></i> Select participants directly from the list.</li>
                     {% else %}
                     <li class="flex items-start gap-2"><i class="fas fa-circle-info text-primary/60 w-4 mt-0.5"></i> Events linked to a school are visible only to that school's staff.</li>
-                    <li class="flex items-start gap-2"><i class="fas fa-circle-info text-primary/60 w-4 mt-0.5"></i> Only Principals can approve activities for their school.</li>
+                    <li class="flex items-start gap-2"><i class="fas fa-circle-info text-primary/60 w-4 mt-0.5"></i> Leave the school blank for program-wide events.</li>
                     {% endif %}
                 </ul>
             </div>
@@ -346,38 +282,6 @@
 </form>
 
 <script>
-{% if not is_principal %}
-function toggleApprovalField(isChecked) {
-    const wrapper = document.getElementById('approvedByWrapper');
-    const label = document.getElementById('approvalLabel');
-    if (isChecked) {
-        wrapper.classList.remove('opacity-50', 'pointer-events-none');
-        label.textContent = 'Approved';
-    } else {
-        wrapper.classList.add('opacity-50', 'pointer-events-none');
-        label.textContent = 'Pending';
-    }
-}
-
-// Auto-select principal when school changes
-{% if school_principal_mapping %}
-const schoolPrincipalMap = {{ school_principal_mapping|safe }};
-const schoolSel = document.getElementById('{{ form.school.id_for_label }}');
-const approvedBySel = document.getElementById('{{ form.approved_by.id_for_label }}');
-
-if (schoolSel && approvedBySel) {
-    schoolSel.addEventListener('change', function () {
-        const principalId = schoolPrincipalMap[this.value];
-        if (principalId) {
-            approvedBySel.value = principalId;
-        } else {
-            approvedBySel.value = '';
-        }
-    });
-}
-{% endif %}
-{% endif %}
-
 // Activity banner preview
 function activityBannerPreview(input) {
     const file = input.files[0];

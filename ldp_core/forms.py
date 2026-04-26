@@ -38,7 +38,7 @@ class ActivityForm(forms.ModelForm):
 
     class Meta:
         model = Activity
-        fields = ['name', 'date', 'description', 'banner', 'school', 'is_approved', 'approved_by']
+        fields = ['name', 'date', 'description', 'banner', 'school']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
         }
@@ -50,15 +50,11 @@ class ActivityForm(forms.ModelForm):
             self.fields['participants'].queryset = Person.objects.filter(
                 school=self.principal_school
             ).select_related('user').order_by('user__last_name', 'user__first_name')
-            # Remove approval fields — principals manage directly
-            del self.fields['is_approved']
-            del self.fields['approved_by']
             # Lock school to principal's school
             self.fields['school'].queryset = School.objects.filter(pk=self.principal_school.pk)
             self.fields['school'].empty_label = None
         else:
             self.fields['participants'].queryset = Person.objects.all().select_related('user').order_by('user__last_name')
-            self.fields['approved_by'].queryset = User.objects.filter(role=User.Role.PRINCIPAL)
         # Pre-select existing participants when editing
         if self.instance and self.instance.pk:
             self.fields['participants'].initial = self.instance.participants.all()
@@ -271,7 +267,7 @@ class PersonUpdateForm(forms.ModelForm):
         fields = [
             'first_name', 'last_name', 'email',
             'type', 'school', 'activities',
-            'profile_photo', 'contact_number', 'address', 'bio',
+            'profile_photo', 'banner', 'contact_number', 'address', 'bio',
             'student_id', 'year_level', 'course_program',
             'section', 'scholarship_type', 'year_started', 'year_ended',
         ]
