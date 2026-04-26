@@ -400,6 +400,12 @@ class ActivityDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     template_name = 'ldp_core/activity_detail.html'
     context_object_name = 'activity'
 
+    def get_context_data(self, **kwargs):
+        from datetime import date
+        ctx = super().get_context_data(**kwargs)
+        ctx['today'] = date.today()
+        return ctx
+
     def test_func(self):
         user = self.request.user
         if user.is_superuser or user.role in ('ADMIN', 'PRINCIPAL'):
