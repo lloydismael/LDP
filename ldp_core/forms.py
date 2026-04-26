@@ -74,7 +74,7 @@ class UserProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Person
         fields = [
-            'first_name', 'last_name', 'email', 'profile_photo',
+            'first_name', 'last_name', 'email', 'profile_photo', 'banner',
             'contact_number', 'address', 'bio',
             'student_id', 'year_level', 'course_program',
             'section', 'scholarship_type', 'year_started', 'year_ended',
