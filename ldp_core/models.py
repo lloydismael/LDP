@@ -1,0 +1,182 @@
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
+
+class User(AbstractUser):
+    class Role(models.TextChoices):
+        ADMIN = 'ADMIN', 'Admin'
+        ENCODER = 'ENCODER', 'Encoder'
+        VIEWER = 'VIEWER', 'Viewer'
+        PRINCIPAL = 'PRINCIPAL', 'Principal'
+        SCHOLAR = 'SCHOLAR', 'Scholar'
+        PROFESSIONAL = 'PROFESSIONAL', 'Professional'
+    
+    role = models.CharField(max_length=50, choices=Role.choices, default=Role.VIEWER)
+    must_change_password = models.BooleanField(default=True)
+
+class School(models.Model):
+    class SchoolType(models.TextChoices):
+        ELEMENTARY = 'ELEMENTARY', 'Elementary School'
+        SECONDARY = 'SECONDARY', 'Secondary / Junior High School'
+        SENIOR_HIGH = 'SENIOR_HIGH', 'Senior High School'
+        INTEGRATED = 'INTEGRATED', 'Integrated School (K–12)'
+        COLLEGE = 'COLLEGE', 'College / University'
+        TECH_VOC = 'TECH_VOC', 'Technical-Vocational Institute'
+        SPECIAL = 'SPECIAL', 'Special Education School'
+        OTHER = 'OTHER', 'Other'
+
+    # Core Identification
+    name = models.CharField(max_length=255, verbose_name='School Name')
+    school_id = models.CharField(max_length=100, blank=True, verbose_name='School ID / EMiS No.')
+    school_type = models.CharField(max_length=50, choices=SchoolType.choices, blank=True, verbose_name='School Type')
+    category = models.CharField(max_length=100, blank=True, verbose_name='Category / Classification')
+
+    # Location
+    address = models.TextField(blank=True, verbose_name='Street Address')
+    location = models.CharField(max_length=255, default='Philippines', verbose_name='City / Municipality')
+    district = models.CharField(max_length=100, blank=True, verbose_name='District')
+    division = models.CharField(max_length=100, blank=True, verbose_name='Division / Department')
+    province = models.CharField(max_length=100, blank=True)
+    region = models.CharField(max_length=100, blank=True)
+
+    # Contact
+    email = models.EmailField(blank=True, verbose_name='School Email')
+    phone = models.CharField(max_length=50, blank=True, verbose_name='Contact Number')
+    website = models.URLField(blank=True, verbose_name='Website URL')
+
+    # Media
+    logo = models.ImageField(upload_to='schools/logos/', blank=True, null=True, verbose_name='School Logo')
+    banner = models.ImageField(upload_to='schools/banners/', blank=True, null=True, verbose_name='School Banner')
+
+    # Other Details
+    founded_year = models.CharField(max_length=10, blank=True, verbose_name='Year Founded')
+    is_active = models.BooleanField(default=True, verbose_name='Active')
+    principal = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_schools', limit_choices_to={'role': User.Role.PRINCIPAL})
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if not is_new:
+            try:
+                old = School.objects.get(pk=self.pk)
+                old_principal_id = old.principal_id
+            except School.DoesNotExist:
+                old_principal_id = None
+        else:
+            old_principal_id = None
+
+        super().save(*args, **kwargs)
+
+        # Record history when principal changes
+        if is_new:
+            if self.principal_id:
+                SchoolPrincipalHistory.objects.create(
+                    school=self,
+                    principal=self.principal,
+                    principal_name=self.principal.get_full_name() or self.principal.username,
+                    assigned_at=timezone.now().date(),
+                )
+        elif old_principal_id != self.principal_id:
+            # Close the current open record
+            SchoolPrincipalHistory.objects.filter(
+                school=self, removed_at__isnull=True
+            ).update(removed_at=timezone.now().date())
+            # Open a new record if a principal is being assigned
+            if self.principal_id:
+                SchoolPrincipalHistory.objects.create(
+                    school=self,
+                    principal=self.principal,
+                    principal_name=self.principal.get_full_name() or self.principal.username,
+                    assigned_at=timezone.now().date(),
+                )
+
+    def __str__(self):
+        return self.name
+
+
+class SchoolPrincipalHistory(models.Model):
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='principal_history')
+    principal = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='principal_history')
+    principal_name = models.CharField(max_length=255, blank=True, verbose_name='Principal Name')
+    assigned_at = models.DateField(verbose_name='Date Assigned')
+    removed_at = models.DateField(null=True, blank=True, verbose_name='Date Removed')
+    notes = models.TextField(blank=True, verbose_name='Notes')
+
+    class Meta:
+        ordering = ['-assigned_at']
+        verbose_name = 'Principal Assignment History'
+        verbose_name_plural = 'Principal Assignment Histories'
+
+    def __str__(self):
+        return f"{self.principal_name} @ {self.school} ({self.assigned_at})"
+
+
+class Activity(models.Model):
+    name = models.CharField(max_length=255)
+    date = models.DateField()
+    description = models.TextField(blank=True)
+    banner = models.ImageField(upload_to='activities/banners/', blank=True, null=True, verbose_name='Activity Banner')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='activities', null=True, blank=True)
+    is_approved = models.BooleanField(default=False)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approved_activities')
+
+    def __str__(self):
+        return self.name
+
+class LeadershipAward(models.Model):
+    class AwardLevel(models.TextChoices):
+        SCHOOL = 'SCHOOL', 'School Level'
+        DISTRICT = 'DISTRICT', 'District Level'
+        DIVISION = 'DIVISION', 'Division Level'
+        REGIONAL = 'REGIONAL', 'Regional Level'
+        NATIONAL = 'NATIONAL', 'National Level'
+
+    recipient = models.ForeignKey('Person', on_delete=models.CASCADE, related_name='leadership_awards')
+    award_title = models.CharField(max_length=255, verbose_name='Award Title')
+    award_level = models.CharField(max_length=50, choices=AwardLevel.choices, default=AwardLevel.SCHOOL, verbose_name='Award Level')
+    year_awarded = models.CharField(max_length=10, verbose_name='Year Awarded')
+    awarding_body = models.CharField(max_length=255, blank=True, verbose_name='Awarding Body / Organization')
+    description = models.TextField(blank=True, verbose_name='Description / Notes')
+    certificate = models.ImageField(upload_to='awards/certificates/', blank=True, null=True, verbose_name='Certificate / Photo')
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='awards', verbose_name='School')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-year_awarded', 'award_title']
+
+    def __str__(self):
+        return f"{self.award_title} — {self.recipient}"
+
+
+class Person(models.Model):
+    class Type(models.TextChoices):
+        STUDENT = 'STUDENT', 'Student'
+        SCHOLAR = 'SCHOLAR', 'Scholar'
+        COLLEGE = 'COLLEGE', 'College'
+        PROFESSIONAL = 'PROFESSIONAL', 'Professional'
+        PRINCIPAL = 'PRINCIPAL', 'Principal'
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    type = models.CharField(max_length=50, choices=Type.choices, default=Type.STUDENT)
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, related_name='people')
+    activities = models.ManyToManyField(Activity, blank=True, related_name='participants')
+    
+    # Profile Extensions
+    profile_photo = models.ImageField(upload_to='profiles/', blank=True, null=True)
+    contact_number = models.CharField(max_length=50, blank=True)
+    address = models.TextField(blank=True)
+    bio = models.TextField(blank=True)
+    # School / Academic Details
+    student_id = models.CharField(max_length=50, blank=True, verbose_name='Student / Scholar ID')
+    year_level = models.CharField(max_length=50, blank=True, verbose_name='Year Level / Grade')
+    course_program = models.CharField(max_length=255, blank=True, verbose_name='Course / Program')
+    section = models.CharField(max_length=50, blank=True, verbose_name='Section / Batch')
+    scholarship_type = models.CharField(max_length=255, blank=True, verbose_name='Scholarship Type / Award')
+    year_started = models.CharField(max_length=10, blank=True, verbose_name='Year Started')
+    year_ended = models.CharField(max_length=10, blank=True, verbose_name='Year Ended / Graduated')
+    pending_changes = models.JSONField(blank=True, null=True)
+    is_pending_approval = models.BooleanField(default=False)
+    
+    def __str__(self):
+        if self.user:
+            return self.user.get_full_name()
+        return f"Person {self.id}"

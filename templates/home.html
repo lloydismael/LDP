@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Welcome, {{ user.get_full_name|default:user.username }}!</h1>
+    <p class="welcome-text">
+        You are now logged into the <strong>Leadership Development Program (LDP)</strong> portal.<br>
+        Current Role: <strong>{{ user.role }}</strong>
+    </p>
+
+    {% if user.role == "ADMIN" or user.is_superuser %}
+        <a href="{% url 'admin:index' %}" class="btn" style="margin-bottom: 1rem; background-color: #047857;">Go to Admin Control Panel</a>
+    {% endif %}
+
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn" style="background-color: #6b7280; margin-bottom: 1rem;">Log Out</button>
+    </form>
+{% endblock %}

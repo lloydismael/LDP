@@ -1,0 +1,321 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Edit School{% else %}Add School{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-2xl font-bold text-navy">
+        {% if form.instance.pk %}Edit School Profile{% else %}Register New School{% endif %}
+      </h2>
+      <p class="text-sm text-gray-500 mt-1">
+        {% if form.instance.pk %}Update information for {{ form.instance.name }}.{% else %}Fill in the details to add a new partner school.{% endif %}
+      </p>
+    </div>
+    <a href="{% url 'ldp_core:school_list' %}" class="text-sm text-primary hover:underline flex items-center gap-1">
+      <i class="fas fa-arrow-left"></i> Back to Schools
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="rounded-lg p-4 {% if message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800{% else %}bg-red-50 border border-red-200 text-red-800{% endif %}">
+        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-2"></i>{{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" id="school-form" enctype="multipart/form-data" class="space-y-5">
+    {% csrf_token %}
+
+    <!-- Section 1: School Identity -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="text-sm font-semibold text-gray-700 border-b pb-3 mb-5">
+        <i class="fas fa-id-card text-primary mr-2"></i>School Identity
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <!-- School Name -->
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-medium text-gray-600 mb-1">School Name <span class="text-red-500">*</span></label>
+          <input type="text" name="name" value="{{ form.name.value|default:'' }}" placeholder="e.g. Rizal National High School"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- School ID -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">School ID / EMiS No.</label>
+          <input type="text" name="school_id" value="{{ form.school_id.value|default:'' }}" placeholder="e.g. 300123"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.school_id.errors %}<p class="text-xs text-red-600 mt-1">{{ form.school_id.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- Year Founded -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Year Founded</label>
+          <input type="text" name="founded_year" value="{{ form.founded_year.value|default:'' }}" placeholder="e.g. 1975" maxlength="10"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.founded_year.errors %}<p class="text-xs text-red-600 mt-1">{{ form.founded_year.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- School Type -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">School Type</label>
+          <select name="school_type" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary bg-white">
+            <option value="">-- Select Type --</option>
+            {% for val, label in form.school_type.field.choices %}
+              {% if val %}
+                <option value="{{ val }}" {% if form.school_type.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% if form.school_type.errors %}<p class="text-xs text-red-600 mt-1">{{ form.school_type.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- Category -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Category / Classification</label>
+          <input type="text" name="category" value="{{ form.category.value|default:'' }}" placeholder="e.g. Public, Private, SUC"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.category.errors %}<p class="text-xs text-red-600 mt-1">{{ form.category.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- Active Status -->
+        <div class="sm:col-span-2 flex items-center gap-3 pt-1">
+          <input type="checkbox" name="is_active" id="id_is_active" {% if form.is_active.value %}checked{% endif %}
+            class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary">
+          <label for="id_is_active" class="text-sm text-gray-700 font-medium">School is Active / Operational</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Location Details -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="text-sm font-semibold text-gray-700 border-b pb-3 mb-5">
+        <i class="fas fa-map-marker-alt text-accent-blue mr-2"></i>Location Details
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <!-- Street Address -->
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Street Address</label>
+          <textarea name="address" rows="2" placeholder="e.g. Brgy. San Jose, Poblacion"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">{{ form.address.value|default:'' }}</textarea>
+          {% if form.address.errors %}<p class="text-xs text-red-600 mt-1">{{ form.address.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- City / Municipality -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">City / Municipality</label>
+          <input type="text" name="location" value="{{ form.location.value|default:'' }}" placeholder="e.g. Cabanatuan City"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.location.errors %}<p class="text-xs text-red-600 mt-1">{{ form.location.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- District -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">District</label>
+          <input type="text" name="district" value="{{ form.district.value|default:'' }}" placeholder="e.g. District I"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.district.errors %}<p class="text-xs text-red-600 mt-1">{{ form.district.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- Division -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Division / Department</label>
+          <input type="text" name="division" value="{{ form.division.value|default:'' }}" placeholder="e.g. DepEd Nueva Ecija"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.division.errors %}<p class="text-xs text-red-600 mt-1">{{ form.division.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- Region -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Region</label>
+          <select name="region" id="id_region" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary bg-white">
+            <option value="">-- Select Region --</option>
+            {% for val, label in form.region.field.choices %}
+              {% if val %}
+                <option value="{{ val }}" {% if form.region.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% if form.region.errors %}<p class="text-xs text-red-600 mt-1">{{ form.region.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- Province -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Province</label>
+          <select name="province" id="id_province" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary bg-white">
+            <option value="">-- Select Province --</option>
+          </select>
+          {% if form.province.errors %}<p class="text-xs text-red-600 mt-1">{{ form.province.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Contact Information -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="text-sm font-semibold text-gray-700 border-b pb-3 mb-5">
+        <i class="fas fa-phone-alt text-secondary mr-2"></i>Contact Information
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <!-- Email -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">School Email</label>
+          <input type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="e.g. info@school.edu.ph"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.email.errors %}<p class="text-xs text-red-600 mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- Phone -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Contact Number</label>
+          <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="e.g. (044) 940-1234"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.phone.errors %}<p class="text-xs text-red-600 mt-1">{{ form.phone.errors.0 }}</p>{% endif %}
+        </div>
+        <!-- Website -->
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Website URL</label>
+          <input type="url" name="website" value="{{ form.website.value|default:'' }}" placeholder="https://www.school.edu.ph"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+          {% if form.website.errors %}<p class="text-xs text-red-600 mt-1">{{ form.website.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Principal Assignment -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="text-sm font-semibold text-gray-700 border-b pb-3 mb-5">
+        <i class="fas fa-user-tie text-amber-600 mr-2"></i>Principal Assignment
+      </h3>
+      <div class="max-w-sm">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Assigned Principal</label>
+        {{ form.principal }}
+        {% if form.principal.help_text %}
+          <p class="mt-1.5 text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100">
+            <i class="fas fa-info-circle mr-1"></i>{{ form.principal.help_text }}
+          </p>
+        {% endif %}
+        {% if form.principal.errors %}<p class="text-xs text-red-600 mt-1">{{ form.principal.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+
+    <!-- Section: School Media (Logo & Banner) -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="text-sm font-semibold text-gray-700 border-b pb-3 mb-5">
+        <i class="fas fa-image text-primary mr-2"></i>School Media
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Logo -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-2">School Logo</label>
+          <!-- Preview -->
+          <div id="logo-preview-wrapper" class="w-24 h-24 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center mb-3">
+            {% if form.instance.logo %}
+              <img id="logo-preview" src="{{ form.instance.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+            {% else %}
+              <i id="logo-placeholder" class="fas fa-school text-gray-300 text-3xl"></i>
+            {% endif %}
+          </div>
+          <label for="id_logo" class="cursor-pointer flex items-center gap-2 w-full py-2 px-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary text-sm text-gray-500 hover:text-primary transition-colors">
+            <i class="fas fa-upload"></i> Choose Logo
+          </label>
+          <input type="file" name="logo" id="id_logo" accept="image/*" class="hidden"
+            onchange="previewImage(this, 'logo-preview-wrapper', 'logo-preview')">
+          {% if form.instance.logo %}
+          <button type="button" onclick="clearImage('logo', 'logo-preview-wrapper', '<i id=\'logo-placeholder\' class=\'fas fa-school text-gray-300 text-3xl\'></i>')"
+            class="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-xs transition-colors">
+            <i class="fas fa-trash"></i> Remove Logo
+          </button>
+          <input type="hidden" name="logo-clear" id="logo-clear-input" value="">
+          {% endif %}
+        </div>
+
+        <!-- Banner -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-2">School Banner</label>
+          <!-- Preview -->
+          <div id="banner-preview-wrapper" class="w-full h-24 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center mb-3">
+            {% if form.instance.banner %}
+              <img id="banner-preview" src="{{ form.instance.banner.url }}" alt="Banner" class="w-full h-full object-cover">
+            {% else %}
+              <i id="banner-placeholder" class="fas fa-panorama text-gray-300 text-3xl"></i>
+            {% endif %}
+          </div>
+          <label for="id_banner" class="cursor-pointer flex items-center gap-2 w-full py-2 px-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary text-sm text-gray-500 hover:text-primary transition-colors">
+            <i class="fas fa-upload"></i> Choose Banner
+          </label>
+          <input type="file" name="banner" id="id_banner" accept="image/*" class="hidden"
+            onchange="previewImage(this, 'banner-preview-wrapper', 'banner-preview')">
+          {% if form.instance.banner %}
+          <button type="button" onclick="clearImage('banner', 'banner-preview-wrapper', '<i id=\'banner-placeholder\' class=\'fas fa-panorama text-gray-300 text-3xl\'></i>')"
+            class="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-xs transition-colors">
+            <i class="fas fa-trash"></i> Remove Banner
+          </button>
+          <input type="hidden" name="banner-clear" id="banner-clear-input" value="">
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-3 pb-4">
+      <a href="{% url 'ldp_core:school_list' %}" class="py-2 px-6 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium transition-colors">
+        Cancel
+      </a>
+      <button type="submit" class="py-2 px-8 rounded-lg bg-primary text-white hover:bg-primary/90 text-sm font-semibold shadow transition-colors flex items-center gap-2">
+        <i class="fas fa-save"></i>
+        {% if form.instance.pk %}Save Changes{% else %}Register School{% endif %}
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+{% if region_provinces %}
+const regionProvinces = {{ region_provinces|safe }};
+{% else %}
+const regionProvinces = {};
+{% endif %}
+
+const regionSelect = document.getElementById('id_region');
+const provinceSelect = document.getElementById('id_province');
+const currentProvince = "{{ form.province.value|default:'' }}";
+
+function updateProvinces() {
+  const region = regionSelect.value;
+  provinceSelect.innerHTML = '<option value="">-- Select Province --</option>';
+  if (region && regionProvinces[region]) {
+    regionProvinces[region].forEach(function(prov) {
+      const option = document.createElement('option');
+      option.value = prov;
+      option.textContent = prov;
+      if (prov === currentProvince) option.selected = true;
+      provinceSelect.appendChild(option);
+    });
+  }
+}
+
+updateProvinces();
+regionSelect.addEventListener('change', updateProvinces);
+
+// Style the principal select
+const principalSelect = document.querySelector('select[name="principal"]');
+if (principalSelect) {
+  principalSelect.className = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary bg-white';
+}
+
+function previewImage(input, wrapperId, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const wrapper = document.getElementById(wrapperId);
+    wrapper.innerHTML = '<img id="' + previewId + '" src="' + e.target.result + '" alt="Preview" class="w-full h-full object-cover">';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage(field, wrapperId, placeholderHtml) {
+  document.getElementById(field + '-clear-input').value = '1';
+  document.getElementById(wrapperId).innerHTML = placeholderHtml;
+  const fileInput = document.getElementById('id_' + field);
+  if (fileInput) fileInput.value = '';
+}
+</script>
+{% endblock %}

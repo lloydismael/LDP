@@ -1,0 +1,153 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}Users{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-navy">Program Users Directory</h2>
+      <p class="text-sm text-gray-500 mt-0.5">All registered participants, scholars, and principals.</p>
+    </div>
+    {% if user.role == 'ADMIN' or user.is_superuser or user.role == 'PRINCIPAL' %}
+    <a href="{% url 'ldp_core:person_create' %}" class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition text-sm">
+      <i class="fas fa-user-plus"></i> Add User
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Table Card -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-100">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">School</th>
+            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Activities</th>
+            <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 bg-white">
+          {% for p in people %}
+          <tr class="hover:bg-slate-50/60 transition-colors group">
+
+            <!-- User column -->
+            <td class="px-5 py-4">
+              <div class="flex items-center gap-3">
+                <!-- Avatar -->
+                <div class="flex-shrink-0">
+                  {% if p.profile_photo %}
+                    <img src="{{ p.profile_photo.url }}" alt="Photo" class="w-10 h-10 rounded-xl object-cover border border-gray-200 shadow-sm">
+                  {% else %}
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm border border-gray-100
+                      {% if p.type == 'SCHOLAR' %}bg-emerald-100 text-emerald-700
+                      {% elif p.type == 'PRINCIPAL' %}bg-blue-100 text-blue-700
+                      {% elif p.type == 'PROFESSIONAL' %}bg-purple-100 text-purple-700
+                      {% elif p.type == 'COLLEGE' %}bg-cyan-100 text-cyan-700
+                      {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                      {{ p.user.first_name|slice:":1" }}{{ p.user.last_name|slice:":1" }}
+                    </div>
+                  {% endif %}
+                </div>
+                <!-- Name & username -->
+                <div>
+                  <div class="text-sm font-semibold text-navy flex items-center gap-2">
+                    {{ p.user.get_full_name|default:p.user.username }}
+                    {% if p.is_pending_approval %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
+                      <i class="fas fa-clock text-[8px]"></i> Pending
+                    </span>
+                    {% endif %}
+                  </div>
+                  <div class="text-xs text-gray-400 font-mono mt-0.5">@{{ p.user.username }}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Type -->
+            <td class="px-5 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold
+                {% if p.type == 'SCHOLAR' %}bg-emerald-50 text-emerald-700 border border-emerald-100
+                {% elif p.type == 'PRINCIPAL' %}bg-blue-50 text-blue-700 border border-blue-100
+                {% elif p.type == 'PROFESSIONAL' %}bg-purple-50 text-purple-700 border border-purple-100
+                {% elif p.type == 'COLLEGE' %}bg-cyan-50 text-cyan-700 border border-cyan-100
+                {% else %}bg-gray-50 text-gray-600 border border-gray-200{% endif %}">
+                {{ p.get_type_display }}
+              </span>
+            </td>
+
+            <!-- School -->
+            <td class="px-5 py-4 whitespace-nowrap text-sm text-gray-600">
+              {% if p.school %}
+                <div class="flex items-center gap-1.5">
+                  <i class="fas fa-school text-gray-300 text-xs"></i>
+                  <span>{{ p.school.name }}</span>
+                </div>
+              {% else %}
+                <span class="text-gray-300 text-xs">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Activities count -->
+            <td class="px-5 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                <i class="fas fa-calendar-check text-[10px]"></i> {{ p.activities.count }}
+              </span>
+            </td>
+
+            <!-- Actions -->
+            <td class="px-5 py-4 whitespace-nowrap text-right">
+              <div class="inline-flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                <!-- View -->
+                <a href="{% url 'ldp_core:person_detail' p.pk %}"
+                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:text-primary hover:bg-indigo-50 transition"
+                  title="View Profile">
+                  <i class="fas fa-eye text-sm"></i>
+                </a>
+                {% if user.role == 'ADMIN' or user.is_superuser %}
+                <!-- Edit -->
+                <a href="{% url 'ldp_core:person_update' p.pk %}"
+                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                  title="Edit Profile">
+                  <i class="fas fa-edit text-sm"></i>
+                </a>
+                <!-- Approve pending -->
+                {% if p.is_pending_approval %}
+                <a href="{% url 'ldp_core:approve_profile' p.pk %}"
+                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 transition"
+                  title="Approve Pending Changes">
+                  <i class="fas fa-check-circle text-sm"></i>
+                </a>
+                {% endif %}
+                <!-- Delete -->
+                <a href="{% url 'ldp_core:person_delete' p.pk %}"
+                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+                  title="Delete User">
+                  <i class="fas fa-trash text-sm"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="px-6 py-14 text-center">
+              <div class="flex flex-col items-center gap-2">
+                <div class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-300">
+                  <i class="fas fa-users text-xl"></i>
+                </div>
+                <span class="text-gray-500 font-medium text-sm">No users registered yet.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

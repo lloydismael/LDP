@@ -1,0 +1,521 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}{{ school.name }}{% endblock %}
+{% block page_title_dup %}School Profile{% endblock %}
+
+{% block content %}
+<style>
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    will-change: transform;
+    transition:
+        transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-decoration: none;
+    color: inherit;
+}
+.stat-card:hover {
+    transform: translateY(-6px) scale(1.04);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+}
+.stat-card:active {
+    transform: translateY(-2px) scale(0.97);
+    transition-duration: 0.1s;
+}
+.stat-card:hover .stat-icon {
+    animation: statIconBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.stat-card:hover img.stat-avatar {
+    animation: statIconBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes statIconBounce {
+    0%   { transform: scale(1) rotate(0deg); }
+    30%  { transform: scale(1.35) rotate(-8deg); }
+    60%  { transform: scale(0.9) rotate(4deg); }
+    100% { transform: scale(1.15) rotate(0deg); }
+}
+</style>
+
+<!-- Header Banner -->
+<div class="glass-card text-white rounded-2xl mb-6 relative overflow-hidden min-h-[120px]"
+     {% if school.banner %}style="background-image: url('{{ school.banner.url }}'); background-size: cover; background-position: center;"{% endif %}>
+    <!-- Overlay: gradient if banner, solid if not -->
+    <div class="absolute inset-0 {% if school.banner %}bg-gradient-to-r from-slate-900/80 via-slate-800/65 to-slate-700/40{% else %}bg-gradient-to-br from-primary/90 to-blue-700{% endif %}"></div>
+    {% if not school.banner %}
+    <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%); background-size: 20px 20px;"></div>
+    {% endif %}
+    <div class="relative flex flex-col sm:flex-row items-start sm:items-center gap-5 p-6">
+        <!-- Logo or school icon -->
+        <div class="h-20 w-20 rounded-2xl overflow-hidden shrink-0 border-2 border-white/30 shadow-lg bg-white/10 backdrop-blur-sm flex items-center justify-center">
+            {% if school.logo %}
+            <img src="{{ school.logo.url }}" alt="{{ school.name }} logo" class="h-full w-full object-cover">
+            {% else %}
+            <i class="fas fa-school text-3xl text-white/80"></i>
+            {% endif %}
+        </div>
+        <!-- Name & badges -->
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-extrabold tracking-tight truncate">{{ school.name }}</h2>
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+                {% if school.school_type %}
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/20 backdrop-blur-sm border border-white/30">
+                    {{ school.get_school_type_display }}
+                </span>
+                {% endif %}
+                {% if school.category %}
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/20 backdrop-blur-sm border border-white/30">
+                    {{ school.category }}
+                </span>
+                {% endif %}
+                {% if school.is_active %}
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-400/30 backdrop-blur-sm border border-emerald-300/40">
+                    <i class="fas fa-circle text-[8px] mr-1"></i> Active
+                </span>
+                {% else %}
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-400/30 backdrop-blur-sm border border-red-300/40">
+                    <i class="fas fa-circle text-[8px] mr-1"></i> Inactive
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Actions -->
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{% url 'ldp_core:school_list' %}" class="h-9 px-4 inline-flex items-center gap-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold transition">
+                <i class="fas fa-arrow-left text-xs"></i> Back
+            </a>
+            {% if user.role == 'ADMIN' or user.is_superuser or school.principal == user %}
+            <a href="{% url 'ldp_core:school_update' school.pk %}" class="h-9 px-4 inline-flex items-center gap-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold transition">
+                <i class="fas fa-edit text-xs"></i> Edit
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+    <!-- Members -->
+    <a href="#members-section" class="glass-card p-4 stat-card">
+        <div class="stat-icon h-10 w-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center mb-2">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="text-2xl font-extrabold text-navy">{{ school.people.count }}</div>
+        <div class="text-xs text-secondary font-semibold mt-0.5">Members</div>
+    </a>
+    <!-- Activities -->
+    <a href="#activities-section" class="glass-card p-4 stat-card">
+        <div class="stat-icon h-10 w-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center mb-2">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="text-2xl font-extrabold text-navy">{{ school.activities.count }}</div>
+        <div class="text-xs text-secondary font-semibold mt-0.5">Activities</div>
+    </a>
+    <!-- Leadership Awardees count -->
+    <a href="#awardees-section" class="glass-card p-4 stat-card">
+        <div class="stat-icon h-10 w-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-2">
+            <i class="fas fa-trophy"></i>
+        </div>
+        <div class="text-2xl font-extrabold text-amber-700">{{ school.awards.count }}</div>
+        <div class="text-xs text-amber-600 font-semibold mt-0.5">Awardees</div>
+    </a>
+    {% if school.principal and school.principal.person %}
+    <a href="{% url 'ldp_core:person_detail' school.principal.person.pk %}" class="glass-card p-4 stat-card">
+        {% if school.principal.person.profile_photo %}
+        <img src="{{ school.principal.person.profile_photo.url }}"
+             alt="{{ school.principal.get_full_name }}"
+             class="stat-avatar h-14 w-14 rounded-full object-cover ring-2 ring-emerald-200 shadow mb-2">
+        {% else %}
+        <div class="stat-icon h-14 w-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg mb-2 ring-2 ring-emerald-200 shadow">
+            {{ school.principal.first_name|slice:":1" }}{{ school.principal.last_name|slice:":1" }}
+        </div>
+        {% endif %}
+        <div class="text-sm font-bold text-navy truncate w-full text-center">
+            {{ school.principal.get_full_name|truncatechars:20 }}
+        </div>
+        <div class="text-xs text-secondary font-semibold mt-0.5">Principal</div>
+    </a>
+    {% else %}
+    <div class="glass-card p-4 stat-card">
+        <div class="stat-icon h-14 w-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-2">
+            <i class="fas fa-user-slash text-lg"></i>
+        </div>
+        <div class="text-sm font-bold text-navy">—</div>
+        <div class="text-xs text-secondary font-semibold mt-0.5">Principal</div>
+    </div>
+    {% endif %}
+    <div class="glass-card p-4 stat-card">
+        <div class="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="text-2xl font-extrabold text-navy">{{ school.founded_year|default:"—" }}</div>
+        <div class="text-xs text-secondary font-semibold mt-0.5">Founded</div>
+    </div>
+</div>
+
+<!-- Main content grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Left: School Info (2 cols) -->
+    <div class="lg:col-span-2 flex flex-col gap-6">
+
+        <!-- School Identity -->
+        <div class="glass-card p-6">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                <div class="h-8 w-8 rounded-lg bg-blue-50 text-primary flex items-center justify-center">
+                    <i class="fas fa-id-card text-sm"></i>
+                </div>
+                <h3 class="font-bold text-navy text-sm uppercase tracking-wider">School Identity</h3>
+            </div>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                <div>
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">School ID / EMiS No.</dt>
+                    <dd class="font-semibold text-navy">{{ school.school_id|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">School Type</dt>
+                    <dd class="font-semibold text-navy">{{ school.get_school_type_display|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">Category / Classification</dt>
+                    <dd class="font-semibold text-navy">{{ school.category|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">Year Founded</dt>
+                    <dd class="font-semibold text-navy">{{ school.founded_year|default:"—" }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Location Details -->
+        <div class="glass-card p-6">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                <div class="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <i class="fas fa-map-marker-alt text-sm"></i>
+                </div>
+                <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Location Details</h3>
+            </div>
+            {% if school.address %}
+            <div class="mb-4">
+                <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">Street Address</dt>
+                <dd class="text-sm font-semibold text-navy">{{ school.address }}</dd>
+            </div>
+            {% endif %}
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                <div>
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">City / Municipality</dt>
+                    <dd class="font-semibold text-navy">{{ school.location|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">District</dt>
+                    <dd class="font-semibold text-navy">{{ school.district|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">Division</dt>
+                    <dd class="font-semibold text-navy">{{ school.division|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">Province</dt>
+                    <dd class="font-semibold text-navy">{{ school.province|default:"—" }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-xs font-bold text-secondary uppercase tracking-wider mb-0.5">Region</dt>
+                    <dd class="font-semibold text-navy">{{ school.region|default:"—" }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Leadership Awardees (Hero) -->
+        <div id="awardees-section" class="glass-card overflow-hidden">
+            <!-- Hero banner -->
+            <div class="relative h-28 bg-gradient-to-r from-amber-600 via-yellow-500 to-orange-500 overflow-hidden">
+                <!-- Decorative rings -->
+                <div class="absolute -top-8 -left-8 h-32 w-32 rounded-full bg-white/10"></div>
+                <div class="absolute -bottom-10 right-10 h-40 w-40 rounded-full bg-white/10"></div>
+                <div class="absolute top-2 right-32 h-16 w-16 rounded-full bg-white/10"></div>
+                <!-- Stacked avatar preview -->
+                <div class="absolute right-6 top-1/2 -translate-y-1/2 flex -space-x-3">
+                    {% with awards=school.awards.all %}
+                    {% for award in awards|slice:":5" %}
+                        {% if award.recipient.profile_photo %}
+                        <img src="{{ award.recipient.profile_photo.url }}"
+                             class="h-10 w-10 rounded-full object-cover ring-2 ring-amber-300 shadow-lg"
+                             alt="{{ award.recipient.user.get_full_name }}">
+                        {% else %}
+                        <div class="h-10 w-10 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold ring-2 ring-amber-300 shadow-lg">
+                            {{ award.recipient.user.first_name|slice:":1" }}{{ award.recipient.user.last_name|slice:":1" }}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                    {% if school.awards.count > 5 %}
+                    <div class="h-10 w-10 rounded-full bg-amber-900/60 text-white flex items-center justify-center text-xs font-bold ring-2 ring-amber-300 shadow-lg">
+                        +{{ school.awards.count|add:"-5" }}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                <!-- Title -->
+                <div class="absolute left-5 top-1/2 -translate-y-1/2">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fas fa-trophy text-white text-lg drop-shadow"></i>
+                        <span class="text-white font-extrabold text-base tracking-wide drop-shadow">Leadership Awardees</span>
+                    </div>
+                    <div class="text-amber-100 text-xs font-medium">
+                        {{ school.awards.count }} award{{ school.awards.count|pluralize }} &bull; {{ school.name|truncatechars:30 }}
+                    </div>
+                </div>
+            </div>
+            <!-- Awardees list -->
+            <div class="p-5">
+            {% with awards=school.awards.all %}
+            {% if awards %}
+            <div class="divide-y divide-slate-50">
+                {% for award in awards|slice:":8" %}
+                <div class="py-3 flex items-start gap-3 group">
+                    {% if award.recipient.profile_photo %}
+                    <img src="{{ award.recipient.profile_photo.url }}"
+                         alt="{{ award.recipient.user.get_full_name }}"
+                         class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200 shrink-0 mt-0.5">
+                    {% else %}
+                    <div class="h-9 w-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                        {{ award.recipient.user.first_name|slice:":1" }}{{ award.recipient.user.last_name|slice:":1" }}
+                    </div>
+                    {% endif %}
+                    <div class="flex-1 min-w-0">
+                        <div class="font-semibold text-sm text-navy truncate">{{ award.recipient.user.get_full_name }}</div>
+                        <div class="text-xs text-secondary truncate">{{ award.award_title }}</div>
+                        <div class="flex items-center gap-1.5 mt-1">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded
+                                {% if award.award_level == 'NATIONAL' %}bg-red-50 text-red-700
+                                {% elif award.award_level == 'REGIONAL' %}bg-orange-50 text-orange-700
+                                {% elif award.award_level == 'DIVISION' %}bg-violet-50 text-violet-700
+                                {% elif award.award_level == 'DISTRICT' %}bg-blue-50 text-blue-700
+                                {% else %}bg-slate-100 text-slate-600{% endif %}">
+                                {{ award.get_award_level_display }}
+                            </span>
+                            <span class="text-[10px] text-slate-400">{{ award.year_awarded }}</span>
+                        </div>
+                    </div>
+                    <a href="{% url 'ldp_core:person_detail' award.recipient.pk %}" class="opacity-0 group-hover:opacity-100 h-7 w-7 rounded-lg inline-flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition shrink-0">
+                        <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% if school.awards.count > 8 %}
+            <div class="pt-3 border-t border-slate-100 text-center">
+                <a href="{% url 'ldp_core:award_list' %}" class="text-xs font-bold text-amber-600 hover:underline">
+                    View all {{ school.awards.count }} awards →
+                </a>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="py-6 text-center">
+                <div class="h-10 w-10 rounded-full bg-amber-50 text-amber-300 flex items-center justify-center mx-auto mb-2">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="text-slate-400 text-xs italic">No leadership awards recorded for this school yet.</div>
+            </div>
+            {% endif %}
+            {% endwith %}
+            </div>
+        </div>
+
+        <!-- Members -->
+        <div id="members-section" class="glass-card p-6">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                <div class="h-8 w-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                    <i class="fas fa-users text-sm"></i>
+                </div>
+                <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Members</h3>
+                <span class="ml-auto bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-lg">{{ school.people.count }}</span>
+            </div>
+            {% with people=school.people.select_related %}
+            {% if people %}
+            <div class="divide-y divide-slate-50">
+                {% for person in people|slice:":10" %}
+                <div class="py-3 flex items-center gap-3 group">
+                    {% if person.profile_photo %}
+                    <img src="{{ person.profile_photo.url }}" class="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200 shrink-0" alt="">
+                    {% else %}
+                    <div class="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0
+                        {% if person.type == 'SCHOLAR' %}bg-emerald-100 text-emerald-700
+                        {% elif person.type == 'COLLEGE' %}bg-cyan-100 text-cyan-700
+                        {% elif person.type == 'PRINCIPAL' %}bg-blue-100 text-blue-700
+                        {% elif person.type == 'PROFESSIONAL' %}bg-purple-100 text-purple-700
+                        {% elif person.type == 'COLLEGE' %}bg-cyan-100 text-cyan-700
+                        {% else %}bg-slate-100 text-slate-600{% endif %}">
+                        {{ person.user.first_name|slice:":1" }}{{ person.user.last_name|slice:":1" }}
+                    </div>
+                    {% endif %}
+                    <div class="flex-1 min-w-0">
+                        <a href="{% url 'ldp_core:person_detail' person.pk %}" class="font-semibold text-sm text-navy hover:text-primary transition truncate block">
+                            {{ person.user.get_full_name|default:person.user.username }}
+                        </a>
+                        <div class="text-xs text-secondary">{{ person.get_type_display }}</div>
+                    </div>
+                    <a href="{% url 'ldp_core:person_detail' person.pk %}" class="opacity-0 group-hover:opacity-100 h-7 w-7 rounded-lg inline-flex items-center justify-center text-slate-400 hover:text-primary hover:bg-blue-50 transition">
+                        <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+                {% endfor %}
+                {% if school.people.count > 10 %}
+                <div class="pt-3 text-center">
+                    <a href="{% url 'ldp_core:person_list' %}" class="text-xs font-bold text-primary hover:underline">
+                        + {{ school.people.count|add:"-10" }} more members
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="py-6 text-center text-secondary text-sm">No members assigned to this school yet.</div>
+            {% endif %}
+            {% endwith %}
+        </div>
+
+    </div>
+
+    <!-- Right: Contact + Activities sidebar -->
+    <div class="flex flex-col gap-6">
+
+        <!-- Contact Information -->
+        <div class="glass-card p-6">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                <div class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <i class="fas fa-address-book text-sm"></i>
+                </div>
+                <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Contact</h3>
+            </div>
+            <ul class="space-y-3 text-sm">
+                {% if school.email %}
+                <li class="flex items-center gap-3">
+                    <div class="h-7 w-7 rounded-lg bg-blue-50 text-primary flex items-center justify-center shrink-0">
+                        <i class="fas fa-envelope text-xs"></i>
+                    </div>
+                    <a href="mailto:{{ school.email }}" class="text-navy font-medium hover:text-primary transition truncate">{{ school.email }}</a>
+                </li>
+                {% endif %}
+                {% if school.phone %}
+                <li class="flex items-center gap-3">
+                    <div class="h-7 w-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <i class="fas fa-phone text-xs"></i>
+                    </div>
+                    <span class="text-navy font-medium">{{ school.phone }}</span>
+                </li>
+                {% endif %}
+                {% if school.website %}
+                <li class="flex items-center gap-3">
+                    <div class="h-7 w-7 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                        <i class="fas fa-globe text-xs"></i>
+                    </div>
+                    <a href="{{ school.website }}" target="_blank" rel="noopener noreferrer" class="text-primary font-medium hover:underline truncate">{{ school.website|truncatechars:30 }}</a>
+                </li>
+                {% endif %}
+                {% if not school.email and not school.phone and not school.website %}
+                <li class="text-slate-400 text-xs italic">No contact information available.</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Principal Assignment History -->
+        <div class="glass-card p-6">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                <div class="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <i class="fas fa-history text-sm"></i>
+                </div>
+                <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Assignment History</h3>
+                <span class="ml-auto bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-lg">{{ school.principal_history.count }}</span>
+            </div>
+            {% with history=school.principal_history.all %}
+            {% if history %}
+            <div class="relative">
+                <!-- Vertical line -->
+                <div class="absolute left-3.5 top-2 bottom-2 w-px bg-slate-200"></div>
+                <div class="space-y-4">
+                    {% for entry in history %}
+                    <div class="relative flex items-start gap-4 pl-9">
+                        <!-- Dot -->
+                        <div class="absolute left-0 top-0.5 h-7 w-7 rounded-full flex items-center justify-center shrink-0 border-2
+                            {% if not entry.removed_at %}border-emerald-400 bg-emerald-50{% else %}border-slate-300 bg-white{% endif %}">
+                            <i class="fas fa-user-tie text-[10px] {% if not entry.removed_at %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0 pb-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                {% if entry.principal and entry.principal.person %}
+                                <a href="{% url 'ldp_core:person_detail' entry.principal.person.pk %}" class="font-bold text-sm text-navy hover:text-primary transition">
+                                    {{ entry.principal_name }}
+                                </a>
+                                {% else %}
+                                <span class="font-bold text-sm text-navy">{{ entry.principal_name }}</span>
+                                {% endif %}
+                                {% if not entry.removed_at %}
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50">Current</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-xs text-secondary mt-0.5">
+                                <i class="fas fa-calendar-plus text-[10px] mr-1"></i>
+                                Assigned {{ entry.assigned_at|date:"M d, Y" }}
+                                {% if entry.removed_at %}
+                                &nbsp;<i class="fas fa-arrow-right text-[10px] mx-0.5 opacity-50"></i>&nbsp;
+                                <i class="fas fa-calendar-minus text-[10px] mr-1"></i>
+                                Removed {{ entry.removed_at|date:"M d, Y" }}
+                                {% endif %}
+                            </div>
+                            {% if entry.notes %}
+                            <p class="text-xs text-slate-400 mt-1 italic">{{ entry.notes }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="py-4 text-center">
+                <div class="text-slate-400 text-xs italic">No assignment history recorded yet.</div>
+                <p class="text-[10px] text-slate-300 mt-1">History is tracked automatically when a principal is assigned or changed.</p>
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Recent Activities -->
+        <div id="activities-section" class="glass-card p-6">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                <div class="h-8 w-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center">
+                    <i class="fas fa-calendar-alt text-sm"></i>
+                </div>
+                <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Activities</h3>
+                <span class="ml-auto bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-lg">{{ school.activities.count }}</span>
+            </div>
+            {% with acts=school.activities.all %}
+            {% if acts %}
+            <div class="space-y-3">
+                {% for act in acts|slice:":6" %}
+                <div class="flex items-start gap-3">
+                    <div class="h-7 w-7 rounded-lg {% if act.is_approved %}bg-emerald-50 text-emerald-600{% else %}bg-amber-50 text-amber-600{% endif %} flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fas {% if act.is_approved %}fa-check{% else %}fa-clock{% endif %} text-[10px]"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="font-semibold text-sm text-navy truncate">{{ act.name }}</div>
+                        <div class="text-xs text-secondary">{{ act.date }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if school.activities.count > 6 %}
+                <a href="{% url 'ldp_core:activity_list' %}" class="block text-center text-xs font-bold text-primary hover:underline pt-2 border-t border-slate-100">
+                    View all {{ school.activities.count }} activities →
+                </a>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="py-4 text-center text-slate-400 text-xs italic">No activities yet.</div>
+            {% endif %}
+            {% endwith %}
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

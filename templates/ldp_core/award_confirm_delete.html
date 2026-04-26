@@ -1,0 +1,32 @@
+{% extends 'ldp_core/base_app.html' %}
+{% block title %}Delete Award{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-10">
+  <div class="glass-card p-8 text-center">
+    <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+      <i class="fas fa-trash text-red-500 text-2xl"></i>
+    </div>
+    <h1 class="text-xl font-bold text-navy mb-2">Delete Award</h1>
+    <p class="text-gray-500 text-sm mb-6">
+      Are you sure you want to delete
+      <strong class="text-navy">{{ object.award_title }}</strong>
+      awarded to
+      <strong class="text-navy">{{ object.recipient.user.get_full_name|default:object.recipient.user.username }}</strong>?
+      <br>This action cannot be undone.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="flex justify-center gap-3">
+        <a href="{% url 'ldp_core:award_list' %}"
+           class="px-5 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">
+          Cancel
+        </a>
+        <button type="submit"
+                class="px-6 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold shadow hover:bg-red-600 transition">
+          Yes, Delete
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

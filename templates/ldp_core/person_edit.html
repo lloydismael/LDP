@@ -1,0 +1,293 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}Edit User Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-2xl font-bold text-navy">
+        Edit Profile &mdash;
+        <span class="text-primary">{{ form.instance.user.get_full_name|default:form.instance.user.username }}</span>
+      </h2>
+      <p class="text-sm text-gray-500 mt-1">Changes are applied immediately by the administrator.</p>
+    </div>
+    <a href="{% url 'ldp_core:person_detail' form.instance.pk %}" class="text-sm text-primary hover:underline flex items-center gap-1">
+      <i class="fas fa-arrow-left"></i> Back to Profile
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="rounded-lg p-4 {% if message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800{% else %}bg-red-50 border border-red-200 text-red-800{% endif %}">
+        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-2"></i>{{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" id="person-edit-form">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left Column: Photo + Quick Info -->
+      <div class="lg:col-span-1 space-y-4">
+        <!-- Photo Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col items-center gap-4">
+          <p class="text-sm font-semibold text-gray-700 self-start w-full border-b pb-2 mb-1">
+            <i class="fas fa-camera text-primary mr-1"></i> Profile Photo
+          </p>
+
+          <div id="photo-preview-wrapper" class="w-36 h-36 rounded-full overflow-hidden border-4 border-primary/30 shadow-md bg-gray-100 flex items-center justify-center">
+            {% if form.instance.profile_photo %}
+              <img id="photo-preview" src="{{ form.instance.profile_photo.url }}" alt="Photo" class="w-full h-full object-cover">
+            {% else %}
+              <div class="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-3xl font-bold">
+                {{ form.instance.user.first_name|slice:":1" }}{{ form.instance.user.last_name|slice:":1" }}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Person type badge -->
+          {% if form.instance.type %}
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+            {% if form.instance.type == 'SCHOLAR' %}bg-emerald-100 text-emerald-700
+            {% elif form.instance.type == 'LEADERSHIP_AWARDEE' %}bg-amber-100 text-amber-700
+            {% elif form.instance.type == 'PRINCIPAL' %}bg-blue-100 text-blue-700
+            {% elif form.instance.type == 'PROFESSIONAL' %}bg-purple-100 text-purple-700
+            {% elif form.instance.type == 'COLLEGE' %}bg-cyan-100 text-cyan-700
+            {% else %}bg-gray-100 text-gray-700{% endif %}">
+            <i class="fas fa-user-tag text-[10px]"></i> {{ form.instance.get_type_display }}
+          </span>
+          {% endif %}
+
+          <div class="w-full">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Upload New Photo</label>
+            <label for="{{ form.profile_photo.id_for_label }}" class="cursor-pointer flex items-center justify-center gap-2 w-full py-2 px-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary text-sm text-gray-500 hover:text-primary transition-colors">
+              <i class="fas fa-upload"></i> Choose Image
+            </label>
+            {{ form.profile_photo }}
+            {% if form.profile_photo.errors %}<p class="text-xs text-red-600 mt-1">{{ form.profile_photo.errors.0 }}</p>{% endif %}
+          </div>
+
+          {% if form.instance.profile_photo %}
+          <div class="w-full">
+            <button type="button" id="delete-photo-btn"
+              class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-sm transition-colors">
+              <i class="fas fa-trash"></i> Remove Photo
+            </button>
+            <input type="hidden" name="profile_photo-clear" id="photo-clear-input" value="">
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Program Info Card (read-only summary) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-2">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider border-b pb-2 mb-1">Program Info</p>
+          <div class="text-xs space-y-1.5">
+            <div class="flex justify-between">
+              <span class="text-gray-400">Username</span>
+              <span class="font-mono font-semibold text-navy">{{ form.instance.user.username }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Status</span>
+              {% if form.instance.user.is_active %}
+                <span class="text-emerald-600 font-semibold">Active</span>
+              {% else %}
+                <span class="text-red-500 font-semibold">Inactive</span>
+              {% endif %}
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Pending</span>
+              {% if form.instance.is_pending_approval %}
+                <span class="text-amber-600 font-semibold">Yes</span>
+              {% else %}
+                <span class="text-gray-500">No</span>
+              {% endif %}
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Activities</span>
+              <span class="font-semibold text-navy">{{ form.instance.activities.count }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Columns: Sections -->
+      <div class="lg:col-span-2 space-y-5">
+
+        <!-- Section: Personal & Account Info -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-sm font-semibold text-gray-700 border-b pb-2 mb-5">
+            <i class="fas fa-user text-primary mr-1.5"></i> Personal & Account Information
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">First Name <span class="text-red-500">*</span></label>
+              <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+              {% if form.first_name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.first_name.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Last Name <span class="text-red-500">*</span></label>
+              <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+              {% if form.last_name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.last_name.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Email Address</label>
+              <input type="email" name="email" value="{{ form.email.value|default:'' }}"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+              {% if form.email.errors %}<p class="text-xs text-red-600 mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Contact Number</label>
+              <input type="text" name="contact_number" value="{{ form.contact_number.value|default:'' }}"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+              {% if form.contact_number.errors %}<p class="text-xs text-red-600 mt-1">{{ form.contact_number.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Address</label>
+              <textarea name="address" rows="2"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">{{ form.address.value|default:'' }}</textarea>
+              {% if form.address.errors %}<p class="text-xs text-red-600 mt-1">{{ form.address.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Bio</label>
+              <textarea name="bio" rows="3" placeholder="Short description..."
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">{{ form.bio.value|default:'' }}</textarea>
+              {% if form.bio.errors %}<p class="text-xs text-red-600 mt-1">{{ form.bio.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Program Classification -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-sm font-semibold text-gray-700 border-b pb-2 mb-5">
+            <i class="fas fa-sitemap text-accent-blue mr-1.5"></i> Program Classification
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Person Type <span class="text-red-500">*</span></label>
+              {{ form.type }}
+              {% if form.type.errors %}<p class="text-xs text-red-600 mt-1">{{ form.type.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Affiliated School</label>
+              {{ form.school }}
+              {% if form.school.errors %}<p class="text-xs text-red-600 mt-1">{{ form.school.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Enrolled Activities</label>
+              <div class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 max-h-36 overflow-y-auto text-sm">
+                {{ form.activities }}
+              </div>
+              <p class="text-xs text-gray-400 mt-1">Hold Ctrl / Cmd to select multiple.</p>
+              {% if form.activities.errors %}<p class="text-xs text-red-600 mt-1">{{ form.activities.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Academic Details -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-sm font-semibold text-gray-700 border-b pb-2 mb-5">
+            <i class="fas fa-school text-secondary mr-1.5"></i> Academic / Scholarship Details
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Student / Scholar ID</label>
+              <input type="text" name="student_id" value="{{ form.student_id.value|default:'' }}" placeholder="e.g. 2024-00001"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Year Level / Grade</label>
+              <input type="text" name="year_level" value="{{ form.year_level.value|default:'' }}" placeholder="e.g. Grade 12 / 3rd Year"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Course / Program</label>
+              <input type="text" name="course_program" value="{{ form.course_program.value|default:'' }}" placeholder="e.g. BS Computer Science"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Section / Batch</label>
+              <input type="text" name="section" value="{{ form.section.value|default:'' }}" placeholder="e.g. Batch 2024 / Section A"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Scholarship Type / Award</label>
+              <input type="text" name="scholarship_type" value="{{ form.scholarship_type.value|default:'' }}" placeholder="e.g. DepEd Leadership Scholarship"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Year Started</label>
+              <input type="text" name="year_started" value="{{ form.year_started.value|default:'' }}" placeholder="e.g. 2020" maxlength="10"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Year Ended / Graduated</label>
+              <input type="text" name="year_ended" value="{{ form.year_ended.value|default:'' }}" placeholder="e.g. 2024"  maxlength="10"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-between gap-3 pb-4">
+          <a href="{% url 'ldp_core:person_delete' form.instance.pk %}"
+            class="py-2 px-5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium transition-colors flex items-center gap-2">
+            <i class="fas fa-trash"></i> Delete User
+          </a>
+          <div class="flex gap-3">
+            <a href="{% url 'ldp_core:person_detail' form.instance.pk %}" class="py-2 px-6 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium transition-colors">
+              Cancel
+            </a>
+            <button type="submit" class="py-2 px-8 rounded-lg bg-primary text-white hover:bg-primary/90 text-sm font-semibold shadow transition-colors flex items-center gap-2">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Style select fields rendered by Django
+  document.querySelectorAll('select').forEach(el => {
+    if (!el.multiple) {
+      el.className = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
+    }
+  });
+
+  // Hide the real file input and style the label
+  const photoInput = document.getElementById('{{ form.profile_photo.id_for_label }}');
+  if (photoInput) {
+    photoInput.classList.add('hidden');
+    photoInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const wrapper = document.getElementById('photo-preview-wrapper');
+          wrapper.innerHTML = '<img src="' + e.target.result + '" alt="Preview" class="w-full h-full object-cover">';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  const deleteBtn = document.getElementById('delete-photo-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', function () {
+      document.getElementById('photo-clear-input').value = '1';
+      document.getElementById('photo-preview-wrapper').innerHTML =
+        '<span class="text-gray-400 text-xs text-center px-2">Photo will be removed</span>';
+      deleteBtn.disabled = true;
+      deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    });
+  }
+</script>
+{% endblock %}

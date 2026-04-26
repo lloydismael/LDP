@@ -1,0 +1,434 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Edit Activity{% else %}Create Activity{% endif %}{% endblock %}
+{% block page_title_dup %}{% if form.instance.pk %}Edit Activity{% else %}New Activity{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center gap-3">
+    <a href="{% url 'ldp_core:activity_list' %}" class="h-9 w-9 inline-flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-navy hover:border-slate-300 shadow-sm transition">
+        <i class="fas fa-arrow-left text-sm"></i>
+    </a>
+    <div>
+        <h2 class="text-xl font-bold text-navy tracking-tight">
+            {% if form.instance.pk %}Edit Activity{% else %}Create New Activity{% endif %}
+        </h2>
+        <p class="text-xs text-secondary mt-0.5">
+            {% if form.instance.pk %}Update the activity details below.{% else %}Fill out the form to register a new training, seminar, or event.{% endif %}
+        </p>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="activityForm">
+    {% csrf_token %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- LEFT: Event Details -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+
+            <!-- Event Identity -->
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                    <div class="h-8 w-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center">
+                        <i class="fas fa-calendar-alt text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Event Details</h3>
+                </div>
+
+                <!-- Event Name -->
+                <div class="mb-5">
+                    <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+                        Event Name <span class="text-red-400">*</span>
+                    </label>
+                    <input type="text"
+                        name="{{ form.name.html_name }}"
+                        id="{{ form.name.id_for_label }}"
+                        value="{{ form.name.value|default:'' }}"
+                        placeholder="e.g. Leadership Summit 2026"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+                    {% if form.name.errors %}
+                    <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Date -->
+                <div class="mb-5">
+                    <label for="{{ form.date.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+                        Date Scheduled <span class="text-red-400">*</span>
+                    </label>
+                    <input type="date"
+                        name="{{ form.date.html_name }}"
+                        id="{{ form.date.id_for_label }}"
+                        value="{{ form.date.value|default:'' }}"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+                    {% if form.date.errors %}
+                    <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+                        Description / Objectives
+                    </label>
+                    <textarea
+                        name="{{ form.description.html_name }}"
+                        id="{{ form.description.id_for_label }}"
+                        rows="5"
+                        placeholder="Provide details about this activity — goals, audience, venue, or agenda..."
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none">{{ form.description.value|default:'' }}</textarea>
+                    {% if form.description.errors %}
+                    <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Activity Banner -->
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                    <div class="h-8 w-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center">
+                        <i class="fas fa-image text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Activity Banner</h3>
+                </div>
+
+                <!-- Preview -->
+                <div id="activity-banner-wrapper" class="w-full h-36 rounded-xl overflow-hidden border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center mb-3">
+                    {% if form.instance.banner %}
+                    <img id="activity-banner-preview" src="{{ form.instance.banner.url }}" alt="Banner" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="flex flex-col items-center gap-1 text-slate-300">
+                        <i class="fas fa-panorama text-4xl"></i>
+                        <span class="text-xs font-medium">No banner uploaded</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <label for="id_activity_banner" class="cursor-pointer flex items-center justify-center gap-2 w-full py-2 px-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-primary text-sm text-slate-500 hover:text-primary transition-colors mb-2">
+                    <i class="fas fa-upload"></i> Choose Banner Image
+                </label>
+                <input type="file" name="banner" id="id_activity_banner" accept="image/*" class="hidden"
+                    onchange="activityBannerPreview(this)">
+
+                {% if form.instance.banner %}
+                <button type="button" onclick="clearActivityBanner()"
+                    class="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-xs transition-colors">
+                    <i class="fas fa-trash"></i> Remove Banner
+                </button>
+                <input type="hidden" name="banner-clear" id="banner-clear-input" value="">
+                {% endif %}
+
+                {% if form.banner.errors %}
+                <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.banner.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- School Assignment -->
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                    <div class="h-8 w-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+                        <i class="fas fa-school text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-navy text-sm uppercase tracking-wider">School Assignment</h3>
+                </div>
+
+                <div class="mb-2">
+                    <label for="{{ form.school.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+                        Affiliated School
+                    </label>
+                    {% if is_principal %}
+                    <!-- Principals: school is locked -->
+                    <div class="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-navy text-sm font-medium">
+                        <i class="fas fa-lock text-slate-400 text-xs"></i>
+                        <span>{{ form.school.value_from_datadict|default:form.school.field.queryset.first }}</span>
+                        {% for val, label in form.school.field.choices %}
+                            {% if val %}
+                            <span class="font-semibold">{{ label }}</span>
+                            {% endif %}
+                        {% endfor %}
+                        <input type="hidden" name="{{ form.school.html_name }}" value="{{ form.school.field.queryset.first.pk }}">
+                    </div>
+                    <p class="mt-1.5 text-xs text-slate-400">Activity is assigned to your school.</p>
+                    {% else %}
+                    <div class="relative">
+                        <select name="{{ form.school.html_name }}" id="{{ form.school.id_for_label }}"
+                            class="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+                            <option value="">— Global / No School —</option>
+                            {% for val, label in form.school.field.choices %}
+                                {% if val %}
+                                <option value="{{ val }}" {% if form.school.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                    <p class="mt-1.5 text-xs text-slate-400">Leave blank if this is a global / program-wide event.</p>
+                    {% endif %}
+                    {% if form.school.errors %}
+                    <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.school.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Participants (shown for all, but especially prominent for principals) -->
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                    <div class="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <i class="fas fa-users text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Participants</h3>
+                </div>
+
+                <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-2">
+                    Select Participants
+                </label>
+                <p class="text-xs text-slate-400 mb-3">
+                    {% if is_principal %}
+                        Choose participants from your school's registered users.
+                    {% else %}
+                        Select users who will attend this activity.
+                    {% endif %}
+                </p>
+
+                {% if form.participants.field.queryset.count > 0 %}
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <!-- Search box -->
+                    <div class="border-b border-slate-100 px-3 py-2 bg-slate-50">
+                        <input type="text" id="participantSearch" placeholder="Search participants..."
+                            class="w-full text-sm bg-transparent placeholder-slate-400 text-navy focus:outline-none" oninput="filterParticipants(this.value)">
+                    </div>
+                    <!-- Participant checkboxes -->
+                    <div id="participantList" class="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                        {% for person in form.participants.field.queryset %}
+                        <label class="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50/50 cursor-pointer transition participant-row">
+                            <input type="checkbox"
+                                name="{{ form.participants.html_name }}"
+                                value="{{ person.pk }}"
+                                class="w-4 h-4 rounded text-primary accent-indigo-600"
+                                {% if person in form.participants.initial %}checked{% endif %}
+                                {% if form.participants.value and person.pk|stringformat:"s" in form.participants.value|join:"," %}checked{% endif %}>
+                            {% if person.profile_photo %}
+                            <img src="{{ person.profile_photo.url }}" alt="{{ person.user.get_full_name }}"
+                                class="w-7 h-7 rounded-full object-cover flex-shrink-0 ring-1 ring-slate-200">
+                            {% else %}
+                            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                                <span class="text-white text-xs font-bold">{{ person.user.first_name|first|upper }}{{ person.user.last_name|first|upper }}</span>
+                            </div>
+                            {% endif %}
+                            <span class="text-sm font-medium text-navy participant-name">{{ person.user.get_full_name }}</span>
+                            <span class="ml-auto text-xs text-slate-400">{{ person.get_type_display }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <!-- Select all / none -->
+                    <div class="border-t border-slate-100 px-4 py-2 bg-slate-50 flex items-center gap-4">
+                        <button type="button" onclick="selectAllParticipants(true)" class="text-xs font-semibold text-primary hover:text-indigo-800 transition">Select All</button>
+                        <span class="text-slate-300">|</span>
+                        <button type="button" onclick="selectAllParticipants(false)" class="text-xs font-semibold text-slate-500 hover:text-navy transition">Clear</button>
+                        <span class="ml-auto text-xs text-slate-400" id="participantCount"></span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="py-8 text-center text-slate-400 text-sm border border-dashed border-slate-200 rounded-xl">
+                    <i class="fas fa-user-slash text-2xl mb-2 block"></i>
+                    No participants available{% if is_principal %} for your school{% endif %}.
+                </div>
+                {% endif %}
+
+                {% if form.participants.errors %}
+                <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.participants.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- RIGHT: Approval (admin only) + Actions -->
+        <div class="flex flex-col gap-6">
+
+            {% if not is_principal %}
+            <!-- Approval Status — admin only -->
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                    <div class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <i class="fas fa-check-shield text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Approval</h3>
+                </div>
+
+                <!-- is_approved toggle -->
+                <div class="mb-5">
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-2">Approval Status</label>
+                    <label class="relative inline-flex items-center cursor-pointer gap-3">
+                        <input type="checkbox"
+                            name="{{ form.is_approved.html_name }}"
+                            id="{{ form.is_approved.id_for_label }}"
+                            {% if form.is_approved.value %}checked{% endif %}
+                            class="sr-only peer"
+                            onchange="toggleApprovalField(this.checked)">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <span class="text-sm font-semibold text-navy" id="approvalLabel">
+                            {% if form.is_approved.value %}Approved{% else %}Pending{% endif %}
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Approved By -->
+                <div id="approvedByWrapper" {% if not form.is_approved.value %}class="opacity-50 pointer-events-none"{% endif %}>
+                    <label for="{{ form.approved_by.id_for_label }}" class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">
+                        Approved By
+                    </label>
+                    <div class="relative">
+                        <select name="{{ form.approved_by.html_name }}" id="{{ form.approved_by.id_for_label }}"
+                            class="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-navy text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+                            <option value="">— Select Principal —</option>
+                            {% for val, label in form.approved_by.field.choices %}
+                                {% if val %}
+                                <option value="{{ val }}" {% if form.approved_by.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                    {% if form.approved_by.errors %}
+                    <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ form.approved_by.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Principal: auto-approved notice -->
+            <div class="glass-card p-5 border-l-4 border-emerald-400 bg-emerald-50/60">
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-circle-check text-emerald-500 mt-0.5"></i>
+                    <div>
+                        <p class="text-sm font-semibold text-emerald-700">Auto-Approved</p>
+                        <p class="text-xs text-emerald-600 mt-0.5">Activities you create are automatically approved for your school.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Tip Card -->
+            <div class="glass-card p-5 bg-slate-50/60">
+                <p class="text-xs font-bold text-secondary uppercase tracking-wider mb-3">Quick Info</p>
+                <ul class="space-y-2.5 text-xs text-slate-500">
+                    {% if is_principal %}
+                    <li class="flex items-start gap-2"><i class="fas fa-circle-info text-primary/60 w-4 mt-0.5"></i> Activities you create are linked to your school.</li>
+                    <li class="flex items-start gap-2"><i class="fas fa-circle-info text-primary/60 w-4 mt-0.5"></i> Select participants directly from the list.</li>
+                    {% else %}
+                    <li class="flex items-start gap-2"><i class="fas fa-circle-info text-primary/60 w-4 mt-0.5"></i> Events linked to a school are visible only to that school's staff.</li>
+                    <li class="flex items-start gap-2"><i class="fas fa-circle-info text-primary/60 w-4 mt-0.5"></i> Only Principals can approve activities for their school.</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col gap-3">
+                <button type="submit" class="w-full bg-primary hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-2xl shadow-sm transition flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i>
+                    {% if form.instance.pk %}Save Changes{% else %}Create Activity{% endif %}
+                </button>
+                <a href="{% url 'ldp_core:activity_list' %}" class="w-full bg-white hover:bg-slate-50 text-navy font-semibold py-2.5 px-6 rounded-2xl border border-slate-200 shadow-sm transition flex items-center justify-center gap-2 text-sm">
+                    <i class="fas fa-times text-secondary"></i> Cancel
+                </a>
+                {% if form.instance.pk %}
+                <a href="{% url 'ldp_core:activity_delete' form.instance.pk %}" class="w-full bg-white hover:bg-red-50 text-red-500 font-semibold py-2.5 px-6 rounded-2xl border border-red-100 shadow-sm transition flex items-center justify-center gap-2 text-sm mt-1">
+                    <i class="fas fa-trash-alt"></i> Delete Activity
+                </a>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</form>
+
+<script>
+{% if not is_principal %}
+function toggleApprovalField(isChecked) {
+    const wrapper = document.getElementById('approvedByWrapper');
+    const label = document.getElementById('approvalLabel');
+    if (isChecked) {
+        wrapper.classList.remove('opacity-50', 'pointer-events-none');
+        label.textContent = 'Approved';
+    } else {
+        wrapper.classList.add('opacity-50', 'pointer-events-none');
+        label.textContent = 'Pending';
+    }
+}
+
+// Auto-select principal when school changes
+{% if school_principal_mapping %}
+const schoolPrincipalMap = {{ school_principal_mapping|safe }};
+const schoolSel = document.getElementById('{{ form.school.id_for_label }}');
+const approvedBySel = document.getElementById('{{ form.approved_by.id_for_label }}');
+
+if (schoolSel && approvedBySel) {
+    schoolSel.addEventListener('change', function () {
+        const principalId = schoolPrincipalMap[this.value];
+        if (principalId) {
+            approvedBySel.value = principalId;
+        } else {
+            approvedBySel.value = '';
+        }
+    });
+}
+{% endif %}
+{% endif %}
+
+// Activity banner preview
+function activityBannerPreview(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const wrapper = document.getElementById('activity-banner-wrapper');
+        wrapper.innerHTML = '<img id="activity-banner-preview" src="' + e.target.result + '" alt="Preview" class="w-full h-full object-cover">';
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearActivityBanner() {
+    const clearInput = document.getElementById('banner-clear-input');
+    if (clearInput) clearInput.value = '1';
+    document.getElementById('id_activity_banner').value = '';
+    document.getElementById('activity-banner-wrapper').innerHTML = '<div class="flex flex-col items-center gap-1 text-slate-300"><i class="fas fa-panorama text-4xl"></i><span class="text-xs font-medium">No banner uploaded</span></div>';
+}
+
+// Participant search
+function filterParticipants(query) {
+    const rows = document.querySelectorAll('.participant-row');
+    query = query.toLowerCase();
+    rows.forEach(row => {
+        const name = row.querySelector('.participant-name')?.textContent.toLowerCase() || '';
+        row.style.display = name.includes(query) ? '' : 'none';
+    });
+}
+
+// Select all / none
+function selectAllParticipants(checked) {
+    document.querySelectorAll('#participantList input[type="checkbox"]').forEach(cb => {
+        if (cb.closest('.participant-row').style.display !== 'none') {
+            cb.checked = checked;
+        }
+    });
+    updateParticipantCount();
+}
+
+// Update count
+function updateParticipantCount() {
+    const total = document.querySelectorAll('#participantList input[type="checkbox"]').length;
+    const selected = document.querySelectorAll('#participantList input[type="checkbox"]:checked').length;
+    const el = document.getElementById('participantCount');
+    if (el) el.textContent = selected > 0 ? `${selected} / ${total} selected` : '';
+}
+
+// Bind count update
+document.querySelectorAll('#participantList input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', updateParticipantCount);
+});
+updateParticipantCount();
+</script>
+{% endblock %}

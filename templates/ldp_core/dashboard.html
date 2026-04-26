@@ -1,0 +1,102 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block page_title_dup %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <!-- Stat 1 -->
+    <a href="{% url 'ldp_core:person_list' %}" class="glass-card flex items-center gap-4 group hover:scale-[1.02] transition-transform cursor-pointer">
+        <div class="h-14 w-14 rounded-full bg-blue-50 text-accent-blue flex items-center justify-center text-2xl group-hover:bg-accent-blue group-hover:text-white transition-colors">
+            <i class="fas fa-users"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-secondary">Total Users</p>
+            <h4 class="text-2xl font-bold text-navy">{{ people_count }}</h4>
+        </div>
+    </a>
+    
+    <!-- Stat 2 -->
+    <a href="{% url 'ldp_core:school_list' %}" class="glass-card flex items-center gap-4 group hover:scale-[1.02] transition-transform cursor-pointer">
+        <div class="h-14 w-14 rounded-full bg-orange-50 text-accent-orange flex items-center justify-center text-2xl group-hover:bg-accent-orange group-hover:text-white transition-colors">
+            <i class="fas fa-school"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-secondary">Active Schools</p>
+            <h4 class="text-2xl font-bold text-navy">{{ schools_count }}</h4>
+        </div>
+    </a>
+
+    <!-- Stat 3 -->
+    <a href="{% url 'ldp_core:activity_list' %}" class="glass-card flex items-center gap-4 group hover:scale-[1.02] transition-transform cursor-pointer">
+        <div class="h-14 w-14 rounded-full bg-purple-50 text-accent-purple flex items-center justify-center text-2xl group-hover:bg-accent-purple group-hover:text-white transition-colors">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-secondary">Events & Activities</p>
+            <h4 class="text-2xl font-bold text-navy">{{ activities_count }}</h4>
+        </div>
+    </a>
+</div>
+
+{% if user.role == 'ADMIN' or user.is_superuser %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <a href="{% url 'ldp_core:change_management' %}" class="glass-card flex items-center gap-4 group hover:scale-[1.02] transition-transform no-underline">
+        <div class="h-14 w-14 rounded-full {% if pending_changes_count > 0 %}bg-yellow-100 text-yellow-600{% else %}bg-emerald-50 text-emerald-500{% endif %} flex items-center justify-center text-2xl group-hover:bg-yellow-400 group-hover:text-white transition-colors relative flex-shrink-0">
+            <i class="fas fa-tasks"></i>
+            {% if pending_changes_count > 0 %}
+            <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">{{ pending_changes_count }}</span>
+            {% endif %}
+        </div>
+        <div>
+            <p class="text-sm font-medium text-secondary">Change Requests</p>
+            <h4 class="text-2xl font-bold text-navy">{{ pending_changes_count }}</h4>
+            <p class="text-xs text-gray-400 mt-0.5">{% if pending_changes_count > 0 %}Pending profile updates to review{% else %}No pending requests{% endif %}</p>
+        </div>
+    </a>
+</div>
+{% endif %}
+
+<div class="glass-card">
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-bold text-navy">Quick Actions</h3>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% if user.role == 'ADMIN' or user.is_superuser %}
+        <a href="{% url 'ldp_core:school_create' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-primary transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
+            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-accent-blue group-hover:text-primary transition-colors">
+                <i class="fas fa-plus-circle text-xl"></i>
+            </div>
+            <span class="font-bold text-navy group-hover:text-white transition-colors">Add School</span>
+        </a>
+        <a href="{% url 'ldp_core:person_create' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-accent-green transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
+            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-accent-green group-hover:text-accent-green transition-colors">
+                <i class="fas fa-user-plus text-xl"></i>
+            </div>
+            <span class="font-bold text-navy group-hover:text-white transition-colors">Add User</span>
+        </a>
+        <a href="{% url 'ldp_core:activity_create' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-accent-purple transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
+            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-accent-purple group-hover:text-accent-purple transition-colors">
+                <i class="fas fa-calendar-plus text-xl"></i>
+            </div>
+            <span class="font-bold text-navy group-hover:text-white transition-colors">Create Activity</span>
+        </a>
+        <a href="{% url 'ldp_core:profile' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-accent-orange transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
+            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-accent-orange group-hover:text-accent-orange transition-colors">
+                <i class="fas fa-id-badge text-xl"></i>
+            </div>
+            <span class="font-bold text-navy group-hover:text-white transition-colors">Update Profile</span>
+        </a>
+        <a href="{% url 'ldp_core:change_management' %}" class="group relative bg-lightbg rounded-2xl p-6 flex flex-col items-center hover:bg-yellow-500 transition-colors border border-transparent hover:shadow-md cursor-pointer overflow-hidden">
+            <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-soft text-yellow-500 group-hover:text-yellow-500 transition-colors relative">
+                <i class="fas fa-tasks text-xl"></i>
+                {% if pending_changes_count > 0 %}
+                <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center">{{ pending_changes_count }}</span>
+                {% endif %}
+            </div>
+            <span class="font-bold text-navy group-hover:text-white transition-colors">Change Mgmt</span>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

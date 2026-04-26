@@ -1,0 +1,166 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}Schools{% endblock %}
+{% block page_title_dup %}Schools{% endblock %}
+
+{% block content %}
+<style>
+    .action-btn:hover .action-tooltip {
+        opacity: 1;
+        transform: translate(-50%, 0);
+        visibility: visible;
+    }
+    .action-tooltip {
+        opacity: 0;
+        visibility: hidden;
+        transform: translate(-50%, 5px);
+        transition: all 0.2s ease-in-out;
+    }
+</style>
+
+<div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+    <h3 class="text-xl font-bold text-navy tracking-tight">Partner Schools</h3>
+    {% if user.role == 'ADMIN' or user.is_superuser %}
+    <a href="{% url 'ldp_core:school_create' %}" class="bg-primary hover:bg-blue-700 text-white shadow-soft font-semibold py-3 px-6 rounded-2xl transition flex items-center gap-2">
+        <i class="fas fa-plus"></i> Add School
+    </a>
+    {% endif %}
+</div>
+
+<div class="glass-card overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-gray-100">
+                    <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase">School</th>
+                    <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase">Type</th>
+                    <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase">Location</th>
+                    <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase">Principal</th>
+                    <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase text-center">Members</th>
+                    <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase">Status</th>
+                    <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-navy divide-y divide-gray-50">
+                {% for school in schools %}
+                <tr class="hover:bg-lightbg transition-colors group">
+                    <td class="py-3 px-4">
+                        <div class="relative rounded-xl overflow-hidden min-w-[200px]">
+                            {% if school.banner %}
+                            <!-- Banner background -->
+                            <div class="absolute inset-0" style="background-image: url('{{ school.banner.url }}'); background-size: cover; background-position: center;"></div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-slate-900/75 via-slate-900/50 to-slate-800/30"></div>
+                            {% endif %}
+                            <div class="relative flex items-center gap-3 p-2.5">
+                                <!-- Logo -->
+                                <div class="h-11 w-11 rounded-xl shrink-0 overflow-hidden border-2 {% if school.banner %}border-white/30{% else %}border-slate-200{% endif %} {% if not school.logo %}bg-blue-50{% endif %} flex items-center justify-center shadow-md">
+                                    {% if school.logo %}
+                                    <img src="{{ school.logo.url }}" alt="{{ school.name }} logo" class="h-full w-full object-cover">
+                                    {% else %}
+                                    <i class="fas fa-school {% if school.banner %}text-white/80{% else %}text-primary{% endif %}"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0">
+                                    <a href="{% url 'ldp_core:school_detail' school.pk %}" class="font-bold text-sm {% if school.banner %}text-white hover:text-blue-200{% else %}text-slate-800 hover:text-primary{% endif %} hover:underline transition-colors line-clamp-1">
+                                        {{ school.name }}
+                                    </a>
+                                    {% if school.school_id %}
+                                    <div class="text-xs {% if school.banner %}text-white/60{% else %}text-secondary{% endif %} font-medium">ID: {{ school.school_id }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4">
+                        {% if school.school_type %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/50">
+                            {{ school.get_school_type_display }}
+                        </span>
+                        {% elif school.category %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-50 text-slate-600 ring-1 ring-slate-200/50">
+                            {{ school.category }}
+                        </span>
+                        {% else %}
+                        <span class="text-xs text-slate-400">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-4">
+                        <div class="text-sm font-medium">{{ school.location|default:"—" }}</div>
+                        <div class="text-xs text-secondary">{{ school.division|default:"" }}{% if school.division and school.region %}, {% endif %}{{ school.region|default:"" }}</div>
+                    </td>
+                    <td class="py-4 px-4">
+                        {% if school.principal %}
+                        <div class="flex items-center gap-2">
+                            {% if school.principal.person.profile_photo %}
+                            <img src="{{ school.principal.person.profile_photo.url }}"
+                                 alt="{{ school.principal.get_full_name }}"
+                                 class="h-9 w-9 rounded-full object-cover ring-2 ring-white shadow-sm shrink-0">
+                            {% else %}
+                            <div class="h-9 w-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-white shadow-sm">
+                                {{ school.principal.first_name|slice:":1" }}{{ school.principal.last_name|slice:":1" }}
+                            </div>
+                            {% endif %}
+                            <span class="text-sm font-medium leading-tight">{{ school.principal.get_full_name }}</span>
+                        </div>
+                        {% else %}
+                        <span class="text-xs text-slate-400 italic">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 ring-1 ring-blue-200/50">
+                            <i class="fas fa-users text-[10px]"></i>
+                            {{ school.people.count }}
+                        </span>
+                    </td>
+                    <td class="py-4 px-4">
+                        {% if school.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50">
+                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Active
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-red-50 text-red-600 ring-1 ring-red-200/50">
+                            <span class="h-1.5 w-1.5 rounded-full bg-red-400 mr-1.5"></span> Inactive
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-4 text-right">
+                        <div class="flex justify-end gap-1">
+                            <!-- View -->
+                            <a href="{% url 'ldp_core:school_detail' school.pk %}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-slate-500 hover:to-slate-600 shadow-sm hover:shadow transition-all duration-300">
+                                <i class="fas fa-eye"></i>
+                                <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">View</span>
+                            </a>
+                            <!-- Edit (admin OR principal of this school) -->
+                            {% if user.role == 'ADMIN' or user.is_superuser or school.principal == user %}
+                            <a href="{% url 'ldp_core:school_update' school.pk %}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-blue-500 hover:to-cyan-500 shadow-sm hover:shadow transition-all duration-300">
+                                <i class="fas fa-edit"></i>
+                                <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">Edit</span>
+                            </a>
+                            {% endif %}
+                            <!-- Delete (admin only) -->
+                            {% if user.role == 'ADMIN' or user.is_superuser %}
+                            <a href="{% url 'ldp_core:school_delete' school.pk %}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-red-500 hover:to-rose-600 shadow-sm hover:shadow transition-all duration-300">
+                                <i class="fas fa-trash-alt"></i>
+                                <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">Delete</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="py-12 px-6 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="p-4 rounded-full bg-lightbg text-secondary mb-3">
+                                <i class="fas fa-school text-2xl"></i>
+                            </div>
+                            <span class="text-secondary font-bold text-sm">No schools found.</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

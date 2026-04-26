@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leadership Development Program</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',    // Royal Blue
+                        secondary: '#10B981',  // Emerald Green
+                        accent: {
+                            purple: '#8B5CF6',
+                            orange: '#F59E0B',
+                            blue: '#3B82F6',
+                            green: '#10B981',
+                        },
+                        navy: '#1E293B',
+                        lightbg: '#F8FAFC',
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(79, 70, 229, 0.3)',
+                    },
+                    backgroundImage: {
+                        'gradient-primary': 'linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)',
+                        'gradient-success': 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
+                        'gradient-danger': 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .sidebar {
+            background-color: #1e3a8a;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .sidebar::-webkit-scrollbar { display: none; }
+
+        /* Nav link base */
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            position: relative;
+            transition:
+                background-color 0.25s ease,
+                transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                padding-left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+            border-radius: 0 12px 12px 0;
+            margin-right: 12px;
+            will-change: transform;
+            overflow: hidden;
+        }
+        .sidebar-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%) scaleY(0);
+            width: 3px;
+            height: 60%;
+            background: #60a5fa;
+            border-radius: 0 3px 3px 0;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .sidebar-link:hover {
+            background-color: #1e40af;
+            transform: translateX(5px) scale(1.02);
+            padding-left: 28px;
+            box-shadow: 4px 0 12px rgba(0,0,0,0.2);
+        }
+        .sidebar-link:hover::before {
+            transform: translateY(-50%) scaleY(1);
+            opacity: 1;
+        }
+        .sidebar-link:active {
+            transform: translateX(3px) scale(0.97);
+            transition-duration: 0.1s;
+        }
+
+        /* Icon bounce on hover */
+        .sidebar-link:hover i,
+        .sidebar-link:hover .fas,
+        .sidebar-link:hover .far {
+            animation: iconBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes iconBounce {
+            0%   { transform: scale(1) rotate(0deg); }
+            30%  { transform: scale(1.4) rotate(-8deg); }
+            60%  { transform: scale(0.9) rotate(4deg); }
+            100% { transform: scale(1.15) rotate(0deg); }
+        }
+
+        /* Staggered entrance animation for nav items */
+        .sidebar-nav-item {
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: slideInLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .sidebar-nav-item:nth-child(1) { animation-delay: 0.05s; }
+        .sidebar-nav-item:nth-child(2) { animation-delay: 0.1s; }
+        .sidebar-nav-item:nth-child(3) { animation-delay: 0.15s; }
+        .sidebar-nav-item:nth-child(4) { animation-delay: 0.2s; }
+        .sidebar-nav-item:nth-child(5) { animation-delay: 0.25s; }
+        .sidebar-nav-item:nth-child(6) { animation-delay: 0.3s; }
+        .sidebar-nav-item:nth-child(7) { animation-delay: 0.35s; }
+        .sidebar-nav-item:nth-child(8) { animation-delay: 0.4s; }
+        @keyframes slideInLeft {
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Active link highlight */
+        .sidebar-link.active {
+            background-color: #2563eb;
+            transform: translateX(5px);
+            box-shadow: 4px 0 16px rgba(37,99,235,0.4);
+        }
+        .sidebar-link.active::before {
+            transform: translateY(-50%) scaleY(1);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans tracking-normal leading-normal">
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <!-- Sidebar -->
+        <nav class="sidebar text-white w-full md:w-64 flex-shrink-0" id="main-sidebar">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold font-serif whitespace-nowrap overflow-hidden text-ellipsis">LDP Portal</h1>
+            </div>
+            <ul class="flex flex-col mt-4 pb-20">
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'ldp_core:dashboard' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-home mr-3"></i>Dashboard</a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'ldp_core:school_list' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-school mr-3"></i>Schools</a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'ldp_core:person_list' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-users mr-3"></i>Users</a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'ldp_core:activity_list' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-calendar-alt mr-3"></i>Activities</a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'ldp_core:award_list' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-trophy mr-3"></i>Leadership Awards</a>
+                </li>
+                
+                {% if user.role == 'ADMIN' or user.is_superuser %}
+                <li class="sidebar-nav-item mt-6 border-t border-blue-800 pt-4">
+                    <span class="block py-2 px-6 text-xs uppercase text-gray-400 font-semibold tracking-wider">Admin</span>
+                    <a href="{% url 'ldp_core:change_management' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-tasks mr-3"></i>Change Management</a>
+                    <a href="{% url 'admin:index' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-cogs mr-3"></i>Django Admin</a>
+                </li>
+                {% endif %}
+                
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'ldp_core:profile' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-user-circle mr-3"></i>My Profile</a>
+                </li>
+                
+                <li class="border-t border-blue-800 mt-4">
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full text-left sidebar-link py-4 px-6 text-white bg-transparent border-none cursor-pointer">
+                            <i class="fas fa-sign-out-alt mr-3"></i>Log Out
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8 overflow-y-auto">
+            <!-- Topbar (Optional) -->
+            <header class="flex justify-between items-center border-b pb-4 mb-6">
+                <h2 class="text-xl font-semibold text-gray-700">{% block page_title %}Dashboard{% endblock %}</h2>
+                <div class="flex items-center space-x-4">
+                    <a href="{% if user.person %}{% url 'ldp_core:person_detail' user.person.pk %}{% else %}{% url 'ldp_core:profile' %}{% endif %}" class="text-sm font-medium text-gray-600 bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-full flex items-center transition">
+                        {% if user.person.profile_photo %}
+                            <img src="{{ user.person.profile_photo.url }}" alt="Profile" class="w-6 h-6 rounded-full inline-block mr-2 object-cover">
+                        {% else %}
+                            <i class="fas fa-user-circle mr-2"></i>
+                        {% endif %}
+                        {% if user.is_superuser or user.role == 'ADMIN' %}
+                            {{ user.get_full_name|default:user.username }} (Administrator)
+                        {% elif user.person.type %}
+                            {{ user.get_full_name|default:user.username }} ({{ user.person.get_type_display }})
+                        {% else %}
+                            {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                        {% endif %}
+                    </a>
+                </div>
+            </header>
+
+            <!-- Dynamic Content block -->
+            <div class="content">
+                {% block content %}{% endblock %}
+            </div>
+            
+        </main>
+    </div>
+
+    <script>
+    // Mark active nav link based on current URL path
+    (function() {
+        const path = window.location.pathname;
+        document.querySelectorAll('.sidebar-link').forEach(function(link) {
+            if (link.href) {
+                const linkPath = new URL(link.href, window.location.origin).pathname;
+                if (linkPath !== '/' && path.startsWith(linkPath)) {
+                    link.classList.add('active');
+                } else if (linkPath === '/' && path === '/') {
+                    link.classList.add('active');
+                }
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

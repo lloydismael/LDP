@@ -1,0 +1,202 @@
+{% extends 'ldp_core/base_app.html' %}
+{% block title %}{% if object %}Edit Award{% else %}Record Award{% endif %}{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{% url 'ldp_core:award_list' %}"
+       class="text-gray-400 hover:text-primary transition">
+      <i class="fas fa-arrow-left text-lg"></i>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-navy">
+        {% if object %}Edit Award{% else %}Record Leadership Award{% endif %}
+      </h1>
+      <p class="text-xs text-gray-500 mt-0.5">
+        {% if object %}Update award details below{% else %}Document an outstanding leadership achievement{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    {# Recipient & Award Info #}
+    <div class="glass-card p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+        <i class="fas fa-user-graduate mr-1 text-primary"></i> Recipient & Award
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {# Recipient #}
+        <div class="sm:col-span-2">
+          <label for="{{ form.recipient.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.recipient.label }} <span class="text-red-500">*</span>
+          </label>
+          <select name="{{ form.recipient.html_name }}" id="{{ form.recipient.id_for_label }}"
+                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
+            <option value="">— Select recipient —</option>
+            {% for val, label in form.recipient.field.choices %}
+              {% if val %}
+              <option value="{{ val }}" {% if form.recipient.value|stringformat:'s' == val|stringformat:'s' %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% if form.recipient.errors %}<p class="text-xs text-red-500 mt-1">{{ form.recipient.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Award Title #}
+        <div class="sm:col-span-2">
+          <label for="{{ form.award_title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.award_title.label }} <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="{{ form.award_title.html_name }}" id="{{ form.award_title.id_for_label }}"
+                 value="{{ form.award_title.value|default:'' }}"
+                 class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                 placeholder="e.g. Best Leader Award">
+          {% if form.award_title.errors %}<p class="text-xs text-red-500 mt-1">{{ form.award_title.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Award Level #}
+        <div>
+          <label for="{{ form.award_level.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.award_level.label }}
+          </label>
+          <select name="{{ form.award_level.html_name }}" id="{{ form.award_level.id_for_label }}"
+                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
+            {% for val, label in form.award_level.field.choices %}
+            <option value="{{ val }}" {% if form.award_level.value == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if form.award_level.errors %}<p class="text-xs text-red-500 mt-1">{{ form.award_level.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Year Awarded #}
+        <div>
+          <label for="{{ form.year_awarded.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.year_awarded.label }} <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="{{ form.year_awarded.html_name }}" id="{{ form.year_awarded.id_for_label }}"
+                 value="{{ form.year_awarded.value|default:'' }}"
+                 class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                 placeholder="e.g. 2024" maxlength="10">
+          {% if form.year_awarded.errors %}<p class="text-xs text-red-500 mt-1">{{ form.year_awarded.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Awarding Body #}
+        <div class="sm:col-span-2">
+          <label for="{{ form.awarding_body.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.awarding_body.label }}
+          </label>
+          <input type="text" name="{{ form.awarding_body.html_name }}" id="{{ form.awarding_body.id_for_label }}"
+                 value="{{ form.awarding_body.value|default:'' }}"
+                 class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                 placeholder="e.g. Department of Education">
+          {% if form.awarding_body.errors %}<p class="text-xs text-red-500 mt-1">{{ form.awarding_body.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Description #}
+        <div class="sm:col-span-2">
+          <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.description.label }}
+          </label>
+          <textarea name="{{ form.description.html_name }}" id="{{ form.description.id_for_label }}"
+                    rows="3"
+                    class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                    placeholder="Short description of the award or achievement…">{{ form.description.value|default:'' }}</textarea>
+          {% if form.description.errors %}<p class="text-xs text-red-500 mt-1">{{ form.description.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# School #}
+    <div class="glass-card p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+        <i class="fas fa-school mr-1 text-primary"></i> School
+      </h2>
+      {% if principal_school %}
+        <p class="text-sm text-gray-700 font-medium">{{ principal_school.name }}</p>
+        <input type="hidden" name="{{ form.school.html_name }}" value="{{ principal_school.pk }}">
+      {% else %}
+        <select name="{{ form.school.html_name }}" id="{{ form.school.id_for_label }}"
+                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
+          <option value="">— Any / Not specified —</option>
+          {% for val, label in form.school.field.choices %}
+            {% if val %}
+            <option value="{{ val }}" {% if form.school.value|stringformat:'s' == val|stringformat:'s' %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      {% endif %}
+      {% if form.school.errors %}<p class="text-xs text-red-500 mt-1">{{ form.school.errors.0 }}</p>{% endif %}
+    </div>
+
+    {# Certificate / Photo #}
+    <div class="glass-card p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+        <i class="fas fa-image mr-1 text-primary"></i> Certificate / Photo
+      </h2>
+
+      {% if object.certificate %}
+      <div class="mb-3 flex items-center gap-3">
+        <img id="certPreview" src="{{ object.certificate.url }}" alt="Certificate"
+             class="w-24 h-24 object-cover rounded-xl border border-gray-200">
+        <div>
+          <p class="text-xs text-gray-500 mb-1">Current certificate</p>
+          <label class="flex items-center gap-1 text-xs text-red-500 cursor-pointer hover:underline">
+            <input type="checkbox" name="certificate-clear" id="certificate-clear-id" class="hidden" onchange="clearCert(this)">
+            <i class="fas fa-times-circle"></i> Remove certificate
+          </label>
+        </div>
+      </div>
+      {% else %}
+      <div id="certPreviewWrap" class="hidden mb-3">
+        <img id="certPreview" src="" alt="Preview" class="w-24 h-24 object-cover rounded-xl border border-gray-200">
+      </div>
+      {% endif %}
+
+      <label for="id_certificate"
+             class="flex items-center gap-2 cursor-pointer text-sm text-primary font-medium hover:underline">
+        <i class="fas fa-upload"></i>
+        {% if object.certificate %}Replace certificate{% else %}Upload certificate / photo{% endif %}
+      </label>
+      <input type="file" name="certificate" id="id_certificate" accept="image/*" class="hidden"
+             onchange="previewCert(this)">
+      {% if form.certificate.errors %}<p class="text-xs text-red-500 mt-1">{{ form.certificate.errors.0 }}</p>{% endif %}
+    </div>
+
+    {# Actions #}
+    <div class="flex items-center justify-end gap-3">
+      <a href="{% url 'ldp_core:award_list' %}"
+         class="px-5 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">
+        Cancel
+      </a>
+      <button type="submit"
+              class="px-6 py-2 rounded-xl bg-primary text-white text-sm font-semibold shadow hover:bg-indigo-700 transition">
+        {% if object %}Save Changes{% else %}Record Award{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+function previewCert(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let wrap = document.getElementById('certPreviewWrap');
+    let img = document.getElementById('certPreview');
+    if (wrap) { wrap.classList.remove('hidden'); }
+    if (img) { img.src = e.target.result; }
+  };
+  reader.readAsDataURL(file);
+}
+function clearCert(checkbox) {
+  if (checkbox.checked) {
+    let img = document.getElementById('certPreview');
+    let wrap = document.getElementById('certPreviewWrap');
+    if (img) img.src = '';
+    if (wrap) wrap.classList.add('hidden');
+  }
+}
+</script>
+{% endblock %}

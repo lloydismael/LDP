@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — Leadership Development Program</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; min-height: 100vh; }
+        .page-wrap { display: flex; min-height: 100vh; }
+        .left-panel {
+            display: none; flex: 1; min-width: 0;
+            flex-direction: column; justify-content: center; align-items: center;
+            padding: 3rem 2.5rem; position: relative; overflow: hidden;
+            background: linear-gradient(155deg, #1e1b4b 0%, #312e81 45%, #1e3a5f 100%);
+        }
+        .right-panel {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 2.5rem 2rem; background: #f8fafc; width: 100%;
+        }
+        @media (min-width: 1024px) {
+            .left-panel  { display: flex; }
+            .right-panel { width: 480px; flex: none; }
+        }
+        .deco { position: absolute; border-radius: 50%; pointer-events: none; }
+        .deco-1 { top:-80px;left:-80px;width:320px;height:320px;background:rgba(99,102,241,0.15); }
+        .deco-2 { bottom:-60px;right:-60px;width:260px;height:260px;background:rgba(16,185,129,0.10); }
+        .deco-3 { top:40%;left:10%;width:80px;height:80px;background:rgba(255,255,255,0.04); }
+        .brand-content { position:relative;z-index:1;text-align:center;max-width:360px; }
+        .brand-logo {
+            width:80px;height:80px;border-radius:24px;background:rgba(99,102,241,0.5);
+            border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;
+            justify-content:center;margin:0 auto 2rem;box-shadow:0 8px 32px rgba(99,102,241,0.4);
+        }
+        .brand-logo i { font-size:2.2rem;color:#fff; }
+        .brand-title { font-size:1.75rem;font-weight:800;color:#fff;line-height:1.25;letter-spacing:-0.5px;margin-bottom:1rem; }
+        .brand-subtitle { color:rgba(199,210,254,0.8);font-size:0.9rem;line-height:1.65;margin-bottom:2.5rem; }
+        .feature-pills { display:flex;flex-direction:column;gap:0.75rem;text-align:left; }
+        .pill { display:flex;align-items:center;gap:0.75rem;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:0.75rem 1rem; }
+        .pill-icon { width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+        .pill-icon i { font-size:0.85rem; }
+        .pill-text { color:rgba(224,231,255,0.85);font-size:0.82rem;font-weight:500; }
+        .mobile-logo { text-align:center;margin-bottom:2rem;display:block; }
+        @media (min-width:1024px) { .mobile-logo { display:none; } }
+        .mobile-logo-icon { width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;margin:0 auto 0.75rem; }
+        .mobile-logo-icon i { font-size:1.5rem;color:#fff; }
+        .mobile-logo-title { font-size:1.1rem;font-weight:700;color:#1e293b; }
+        .form-wrap { width:100%;max-width:380px; }
+        .form-heading { margin-bottom:2rem; }
+        .form-heading h2 { font-size:1.6rem;font-weight:800;color:#1e293b;letter-spacing:-0.5px; }
+        .form-heading p { color:#64748b;font-size:0.875rem;margin-top:0.35rem; }
+        .alert { display:flex;align-items:flex-start;gap:0.75rem;border-radius:12px;padding:0.875rem 1rem;margin-bottom:1.25rem;font-size:0.855rem;font-weight:500; }
+        .alert i { flex-shrink:0;margin-top:2px; }
+        .alert-error { background:#fef2f2;border:1.5px solid #fecaca;color:#b91c1c; }
+        .alert-error i { color:#ef4444; }
+        .alert-info { background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8; }
+        .alert-info i { color:#3b82f6; }
+        .alert-warn { background:#fffbeb;border:1.5px solid #fde68a;color:#92400e; }
+        .alert-warn i { color:#d97706; }
+        .field { margin-bottom:1.25rem; }
+        .field label { display:block;font-size:0.78rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem; }
+        .input-wrap { position:relative; }
+        .input-icon { position:absolute;left:0.875rem;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:0.875rem;pointer-events:none; }
+        .input-field { width:100%;padding:0.75rem 1rem 0.75rem 2.75rem;border-radius:0.75rem;border:1.5px solid #e2e8f0;background:#f8fafc;color:#1e293b;font-size:0.875rem;font-weight:500;font-family:inherit;transition:border-color 0.2s,box-shadow 0.2s,background 0.2s; }
+        .input-field:focus { outline:none;border-color:#6366f1;background:#fff;box-shadow:0 0 0 3px rgba(99,102,241,0.12); }
+        .input-field::placeholder { color:#94a3b8;font-weight:400; }
+        .input-pw { padding-right:2.75rem; }
+        .pw-toggle { position:absolute;right:0.875rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;padding:0;line-height:1;font-size:0.875rem;transition:color 0.2s; }
+        .pw-toggle:hover { color:#6366f1; }
+        .btn-submit { width:100%;padding:0.875rem 1.5rem;background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:#fff;font-size:0.9rem;font-weight:700;font-family:inherit;border-radius:0.875rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;box-shadow:0 4px 14px rgba(99,102,241,0.35);transition:opacity 0.2s,box-shadow 0.2s;margin-top:1.75rem; }
+        .btn-submit:hover { opacity:0.92;box-shadow:0 6px 20px rgba(99,102,241,0.45); }
+        .btn-submit:active { opacity:0.85; }
+        .form-footer { text-align:center;color:#94a3b8;font-size:0.78rem;margin-top:2rem; }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+
+    <div class="left-panel">
+        <div class="deco deco-1"></div>
+        <div class="deco deco-2"></div>
+        <div class="deco deco-3"></div>
+        <div class="brand-content">
+            <div class="brand-logo"><i class="fas fa-graduation-cap"></i></div>
+            <h1 class="brand-title">Leadership<br>Development Program</h1>
+            <p class="brand-subtitle">Empowering future leaders through structured development, mentoring, and community engagement.</p>
+            <div class="feature-pills">
+                <div class="pill">
+                    <div class="pill-icon" style="background:rgba(16,185,129,0.25);"><i class="fas fa-users" style="color:#34d399;"></i></div>
+                    <span class="pill-text">Manage scholars and participants</span>
+                </div>
+                <div class="pill">
+                    <div class="pill-icon" style="background:rgba(99,102,241,0.3);"><i class="fas fa-calendar-check" style="color:#a5b4fc;"></i></div>
+                    <span class="pill-text">Track trainings, seminars &amp; events</span>
+                </div>
+                <div class="pill">
+                    <div class="pill-icon" style="background:rgba(245,158,11,0.25);"><i class="fas fa-school" style="color:#fcd34d;"></i></div>
+                    <span class="pill-text">School-based monitoring &amp; reporting</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="mobile-logo">
+            <div class="mobile-logo-icon"><i class="fas fa-graduation-cap"></i></div>
+            <div class="mobile-logo-title">Leadership Development Program</div>
+        </div>
+        <div class="form-wrap">
+            <div class="form-heading">
+                <h2>Welcome back</h2>
+                <p>Sign in to your account to continue</p>
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Incorrect username or password. Please try again.</span>
+            </div>
+            {% endif %}
+
+            {% if next and not form.errors %}
+                {% if user.is_authenticated %}
+                <div class="alert alert-warn">
+                    <i class="fas fa-lock"></i>
+                    <span>Your account does not have access to that page.</span>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Please sign in to access that page.</span>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <form method="post" action="{% url 'login' %}" autocomplete="on">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="id_username">Username</label>
+                    <div class="input-wrap">
+                        <span class="input-icon"><i class="fas fa-user"></i></span>
+                        <input type="text" name="username" id="id_username"
+                            autofocus autocapitalize="none" autocomplete="username"
+                            maxlength="150" required placeholder="Enter your username"
+                            class="input-field">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="id_password">Password</label>
+                    <div class="input-wrap">
+                        <span class="input-icon"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password" id="id_password"
+                            autocomplete="current-password" required
+                            placeholder="Enter your password"
+                            class="input-field input-pw">
+                        <button type="button" onclick="togglePwd()" tabindex="-1" class="pw-toggle">
+                            <i class="fas fa-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" name="next" value="{{ next|default:'/dashboard/' }}">
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+            </form>
+
+            <p class="form-footer">&copy; {% now "Y" %} Leadership Development Program</p>
+        </div>
+    </div>
+
+</div>
+<script>
+function togglePwd() {
+    const f = document.getElementById('id_password');
+    const i = document.getElementById('toggleIcon');
+    if (f.type === 'password') { f.type = 'text'; i.className = 'fas fa-eye-slash'; }
+    else { f.type = 'password'; i.className = 'fas fa-eye'; }
+}
+</script>
+</body>
+</html>
