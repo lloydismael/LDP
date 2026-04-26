@@ -9,6 +9,7 @@ from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm,
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.contrib import messages
+from django.db.models import Q
 
 @login_required
 def dashboard(request):
@@ -62,16 +63,39 @@ class SchoolListView(LoginRequiredMixin, ListView):
     model = School
     template_name = 'ldp_core/school_list.html'
     context_object_name = 'schools'
+    paginate_by = 100
 
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or user.role == 'ADMIN':
-            return School.objects.filter(is_active=True)
+            qs = School.objects.filter(is_active=True)
         elif user.role == 'PRINCIPAL':
-            return School.objects.filter(principal=user, is_active=True)
+            qs = School.objects.filter(principal=user, is_active=True)
         elif hasattr(user, 'person') and user.person.school:
-            return School.objects.filter(pk=user.person.school.pk, is_active=True)
-        return School.objects.none()
+            qs = School.objects.filter(pk=user.person.school.pk, is_active=True)
+        else:
+            return School.objects.none()
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q) | Q(location__icontains=q) |
+                Q(region__icontains=q) | Q(division__icontains=q) |
+                Q(school_id__icontains=q)
+            )
+        sort = self.request.GET.get('sort', 'name')
+        direction = self.request.GET.get('dir', 'asc')
+        sort_map = {'name': 'name', 'type': 'school_type', 'location': 'location', 'status': 'is_active'}
+        order_field = sort_map.get(sort, 'name')
+        if direction == 'desc':
+            order_field = f'-{order_field}'
+        return qs.order_by(order_field)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['current_sort'] = self.request.GET.get('sort', 'name')
+        ctx['current_dir'] = self.request.GET.get('dir', 'asc')
+        return ctx
 
 class SchoolCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
     model = School
@@ -113,16 +137,38 @@ class PersonListView(LoginRequiredMixin, ListView):
     model = Person
     template_name = 'ldp_core/person_list.html'
     context_object_name = 'people'
+    paginate_by = 100
 
     def get_queryset(self):
         user = self.request.user
-        # Exclude admin/superuser accounts — they manage the system, not participants
-        base_qs = Person.objects.exclude(user__role='ADMIN').exclude(user__is_superuser=True)
+        base_qs = Person.objects.exclude(user__role='ADMIN').exclude(user__is_superuser=True).select_related('user', 'school')
         if user.is_superuser or user.role == 'ADMIN':
-            return base_qs
+            qs = base_qs
         elif hasattr(user, 'person') and user.person.school:
-            return base_qs.filter(school=user.person.school)
-        return Person.objects.none()
+            qs = base_qs.filter(school=user.person.school)
+        else:
+            return Person.objects.none()
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q) |
+                Q(user__username__icontains=q) | Q(school__name__icontains=q) |
+                Q(type__icontains=q)
+            )
+        sort = self.request.GET.get('sort', 'name')
+        direction = self.request.GET.get('dir', 'asc')
+        sort_map = {'name': 'user__last_name', 'type': 'type', 'school': 'school__name'}
+        order_field = sort_map.get(sort, 'user__last_name')
+        if direction == 'desc':
+            order_field = f'-{order_field}'
+        return qs.order_by(order_field)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['current_sort'] = self.request.GET.get('sort', 'name')
+        ctx['current_dir'] = self.request.GET.get('dir', 'asc')
+        return ctx
 class PersonDetailView(LoginRequiredMixin, DetailView):
     model = Person
     template_name = 'ldp_core/person_detail.html'
@@ -178,28 +224,44 @@ class ActivityListView(LoginRequiredMixin, ListView):
     model = Activity
     template_name = 'ldp_core/activity_list.html'
     context_object_name = 'activities'
+    paginate_by = 100
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.role == 'ADMIN':
+            qs = Activity.objects.all()
+        else:
+            q_filter = Q()
+            if hasattr(user, 'person'):
+                if user.person.school:
+                    q_filter |= Q(school=user.person.school)
+                q_filter |= Q(participants=user.person)
+            if q_filter:
+                qs = Activity.objects.filter(q_filter).distinct()
+            else:
+                return Activity.objects.none()
+        search = self.request.GET.get('q', '').strip()
+        if search:
+            qs = qs.filter(
+                Q(name__icontains=search) | Q(school__name__icontains=search) |
+                Q(description__icontains=search)
+            )
+        sort = self.request.GET.get('sort', 'date')
+        direction = self.request.GET.get('dir', 'desc')
+        sort_map = {'name': 'name', 'date': 'date', 'school': 'school__name', 'approval': 'is_approved'}
+        order_field = sort_map.get(sort, 'date')
+        if direction == 'desc':
+            order_field = f'-{order_field}'
+        return qs.order_by(order_field)
 
     def get_context_data(self, **kwargs):
         from datetime import date
         ctx = super().get_context_data(**kwargs)
         ctx['today'] = date.today()
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['current_sort'] = self.request.GET.get('sort', 'date')
+        ctx['current_dir'] = self.request.GET.get('dir', 'desc')
         return ctx
-
-    def get_queryset(self):
-        from django.db.models import Q
-        user = self.request.user
-        if user.is_superuser or user.role == 'ADMIN':
-            return Activity.objects.all()
-        # Build query: activities for user's school OR activities the user participates in
-        q = Q()
-        if hasattr(user, 'person'):
-            if user.person.school:
-                q |= Q(school=user.person.school)
-            # Also show activities where the user is a participant
-            q |= Q(participants=user.person)
-        if q:
-            return Activity.objects.filter(q).distinct()
-        return Activity.objects.none()
 
 
 class ActivityEditMixin(UserPassesTestMixin):
@@ -465,26 +527,39 @@ class AwardListView(LoginRequiredMixin, ListView):
     model = LeadershipAward
     template_name = 'ldp_core/award_list.html'
     context_object_name = 'awards'
+    paginate_by = 100
 
     def get_queryset(self):
         user = self.request.user
-        qs = LeadershipAward.objects.select_related('recipient__user', 'school').order_by('-year_awarded', 'award_title')
-        if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
-            return qs
-        if getattr(user, 'role', None) == 'PRINCIPAL':
+        qs = LeadershipAward.objects.select_related('recipient__user', 'school')
+        if not (user.is_superuser or getattr(user, 'role', None) == 'ADMIN'):
             try:
                 school = user.person.school
-                return qs.filter(school=school)
+                if school:
+                    qs = qs.filter(school=school)
             except Exception:
                 pass
-        # Scholars/students/college/professional: see only their own school's awards
-        try:
-            school = user.person.school
-            if school:
-                return qs.filter(school=school)
-        except Exception:
-            pass
-        return qs
+        search = self.request.GET.get('q', '').strip()
+        if search:
+            qs = qs.filter(
+                Q(award_title__icontains=search) |
+                Q(recipient__user__first_name__icontains=search) |
+                Q(recipient__user__last_name__icontains=search) |
+                Q(year_awarded__icontains=search) |
+                Q(awarding_body__icontains=search) |
+                Q(school__name__icontains=search)
+            )
+        sort = self.request.GET.get('sort', 'year')
+        direction = self.request.GET.get('dir', 'desc')
+        sort_map = {
+            'year': 'year_awarded', 'title': 'award_title',
+            'level': 'award_level', 'recipient': 'recipient__user__last_name',
+            'school': 'school__name',
+        }
+        order_field = sort_map.get(sort, 'year_awarded')
+        if direction == 'desc':
+            order_field = f'-{order_field}'
+        return qs.order_by(order_field)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -496,6 +571,9 @@ class AwardListView(LoginRequiredMixin, ListView):
                 ctx['principal_school'] = user.person.school
             except Exception:
                 pass
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['current_sort'] = self.request.GET.get('sort', 'year')
+        ctx['current_dir'] = self.request.GET.get('dir', 'desc')
         return ctx
 
 

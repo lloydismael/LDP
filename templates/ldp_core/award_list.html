@@ -1,7 +1,8 @@
 {% extends 'ldp_core/base_app.html' %}
 {% block title %}Leadership Awardees{% endblock %}
+{% block page_title %}Leadership Awardees{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-4">
   <div>
     <h1 class="text-2xl font-bold text-navy">Leadership Awardees</h1>
     <p class="text-sm text-gray-500 mt-1">Recognition of outstanding leadership among scholars, students, and professionals</p>
@@ -14,137 +15,167 @@
   {% endif %}
 </div>
 
-{# --- Summary strip --- #}
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-  <div class="glass-card p-4 flex items-center gap-4">
-    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-primary">
-      <i class="fas fa-trophy"></i>
+<!-- Search bar -->
+<form method="get" class="mb-4">
+  <div class="flex items-center gap-2">
+    <div class="relative flex-1 max-w-sm">
+      <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name, title, year, school…"
+             class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
     </div>
-    <div>
-      <p class="text-xs text-gray-500 uppercase tracking-wide">Total Awards</p>
-      <p class="text-2xl font-bold text-navy">{{ awards|length }}</p>
-    </div>
-  </div>
-  <div class="glass-card p-4 flex items-center gap-4">
-    <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-secondary">
-      <i class="fas fa-users"></i>
-    </div>
-    <div>
-      <p class="text-xs text-gray-500 uppercase tracking-wide">Unique Awardees</p>
-      <p class="text-2xl font-bold text-navy">{{ awards|dictsortreversed:'recipient_id'|length }}</p>
-    </div>
-  </div>
-  <div class="glass-card p-4 flex items-center gap-4">
-    <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
-      <i class="fas fa-star"></i>
-    </div>
-    <div>
-      <p class="text-xs text-gray-500 uppercase tracking-wide">Latest Year</p>
-      <p class="text-2xl font-bold text-navy">
-        {% if awards %}{{ awards.0.year_awarded }}{% else %}—{% endif %}
-      </p>
-    </div>
-  </div>
-</div>
-
-{# --- Awardee cards --- #}
-{% if awards %}
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-  {% for award in awards %}
-  <div class="glass-card p-5 flex flex-col gap-3 relative group">
-    {# Level badge #}
-    <span class="absolute top-4 right-4 text-xs font-semibold px-2 py-0.5 rounded-full
-      {% if award.award_level == 'NATIONAL' %}bg-red-100 text-red-700
-      {% elif award.award_level == 'REGIONAL' %}bg-orange-100 text-orange-700
-      {% elif award.award_level == 'DIVISION' %}bg-yellow-100 text-yellow-700
-      {% elif award.award_level == 'DISTRICT' %}bg-blue-100 text-blue-700
-      {% else %}bg-gray-100 text-gray-600{% endif %}">
-      {{ award.get_award_level_display }}
-    </span>
-
-    <div class="flex items-center gap-3">
-      {# Recipient avatar #}
-      {% if award.recipient.profile_photo %}
-        <img src="{{ award.recipient.profile_photo.url }}"
-             alt="{{ award.recipient }}"
-             class="w-12 h-12 rounded-full object-cover border-2 border-primary/20 shrink-0">
-      {% else %}
-        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <span class="text-primary font-bold text-base">
-            {{ award.recipient.user.first_name|first|upper }}{{ award.recipient.user.last_name|first|upper }}
-          </span>
-        </div>
-      {% endif %}
-      <div class="min-w-0">
-        <p class="font-semibold text-navy leading-tight truncate">
-          {{ award.recipient.user.get_full_name|default:award.recipient.user.username }}
-        </p>
-        <p class="text-xs text-gray-500">{{ award.recipient.get_type_display }}</p>
-      </div>
-    </div>
-
-    {# Award title + year #}
-    <div class="border-t border-gray-100 pt-3">
-      <div class="flex items-start gap-2">
-        <i class="fas fa-award text-yellow-500 mt-0.5 shrink-0"></i>
-        <div>
-          <p class="font-semibold text-navy text-sm leading-snug">{{ award.award_title }}</p>
-          <p class="text-xs text-gray-500 mt-0.5">
-            {{ award.year_awarded }}
-            {% if award.awarding_body %}· {{ award.awarding_body }}{% endif %}
-          </p>
-        </div>
-      </div>
-      {% if award.description %}
-      <p class="text-xs text-gray-600 mt-2 line-clamp-2">{{ award.description }}</p>
-      {% endif %}
-    </div>
-
-    {# School + certificate thumbnail #}
-    <div class="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
-      <span class="text-xs text-gray-500 flex items-center gap-1">
-        <i class="fas fa-school text-gray-400"></i>
-        {{ award.school.name|default:"—" }}
-      </span>
-      {% if award.certificate %}
-      <a href="{{ award.certificate.url }}" target="_blank" class="group/cert">
-        <img src="{{ award.certificate.url }}"
-             alt="Certificate"
-             class="w-10 h-10 object-cover rounded border border-gray-200 hover:opacity-80 transition">
-      </a>
-      {% else %}
-      <span class="text-xs text-gray-300 italic">No certificate</span>
-      {% endif %}
-    </div>
-
-    {# Action buttons (admin/principal) #}
-    {% if can_manage %}
-    <div class="absolute bottom-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-      <a href="{% url 'ldp_core:award_update' award.pk %}"
-         class="w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-50 text-primary hover:bg-indigo-100 text-xs"
-         title="Edit">
-        <i class="fas fa-pencil-alt"></i>
-      </a>
-      <a href="{% url 'ldp_core:award_delete' award.pk %}"
-         class="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 text-xs"
-         title="Delete">
-        <i class="fas fa-trash"></i>
-      </a>
-    </div>
+    {% if search_query %}
+    <a href="?" class="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 transition" title="Clear">
+      <i class="fas fa-times text-sm"></i>
+    </a>
     {% endif %}
+    <button type="submit" class="h-10 px-4 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-indigo-700 transition shadow-sm">
+      <i class="fas fa-search mr-1.5"></i> Search
+    </button>
+    <input type="hidden" name="sort" value="{{ current_sort }}">
+    <input type="hidden" name="dir" value="{{ current_dir }}">
   </div>
-  {% endfor %}
-</div>
-{% else %}
-<div class="glass-card p-16 text-center">
-  <i class="fas fa-trophy text-5xl text-gray-200 mb-4"></i>
-  <p class="text-gray-400 text-lg font-medium">No awards recorded yet</p>
-  {% if can_manage %}
-  <a href="{% url 'ldp_core:award_create' %}"
-     class="mt-4 inline-flex items-center gap-2 text-sm text-primary hover:underline">
-    <i class="fas fa-plus-circle"></i> Record the first award
-  </a>
+</form>
+
+<div class="glass-card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('recipient')"><div class="inline-flex items-center gap-1">Recipient <span class="text-[10px] {% if current_sort == 'recipient' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'recipient' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
+          <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('title')"><div class="inline-flex items-center gap-1">Award <span class="text-[10px] {% if current_sort == 'title' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'title' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
+          <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('level')"><div class="inline-flex items-center gap-1">Level <span class="text-[10px] {% if current_sort == 'level' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'level' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
+          <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('year')"><div class="inline-flex items-center gap-1">Year <span class="text-[10px] {% if current_sort == 'year' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'year' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
+          <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('school')"><div class="inline-flex items-center gap-1">School <span class="text-[10px] {% if current_sort == 'school' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'school' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
+          <th class="py-4 px-4 font-bold text-secondary text-xs tracking-wider uppercase text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="text-navy divide-y divide-gray-50">
+        {% for award in awards %}
+        <tr class="hover:bg-lightbg transition-colors group">
+          <!-- Recipient -->
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-3">
+              {% if award.recipient.profile_photo %}
+              <img src="{{ award.recipient.profile_photo.url }}" alt="{{ award.recipient }}"
+                   class="w-9 h-9 rounded-full object-cover border border-gray-200 shrink-0">
+              {% else %}
+              <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <span class="text-primary font-bold text-xs">{{ award.recipient.user.first_name|first|upper }}{{ award.recipient.user.last_name|first|upper }}</span>
+              </div>
+              {% endif %}
+              <div>
+                <p class="font-semibold text-navy text-sm leading-tight">{{ award.recipient.user.get_full_name|default:award.recipient.user.username }}</p>
+                <p class="text-xs text-gray-400">{{ award.recipient.get_type_display }}</p>
+              </div>
+            </div>
+          </td>
+          <!-- Award title -->
+          <td class="py-3 px-4">
+            <p class="font-semibold text-navy text-sm leading-tight flex items-center gap-1.5">
+              <i class="fas fa-award text-yellow-500 shrink-0"></i>
+              {{ award.award_title }}
+            </p>
+            {% if award.awarding_body %}
+            <p class="text-xs text-gray-400 mt-0.5 ml-5">{{ award.awarding_body }}</p>
+            {% endif %}
+          </td>
+          <!-- Level badge -->
+          <td class="py-3 px-4 whitespace-nowrap">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold
+              {% if award.award_level == 'NATIONAL' %}bg-red-100 text-red-700
+              {% elif award.award_level == 'REGIONAL' %}bg-orange-100 text-orange-700
+              {% elif award.award_level == 'DIVISION' %}bg-yellow-100 text-yellow-700
+              {% elif award.award_level == 'DISTRICT' %}bg-blue-100 text-blue-700
+              {% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ award.get_award_level_display }}
+            </span>
+          </td>
+          <!-- Year -->
+          <td class="py-3 px-4 whitespace-nowrap">
+            <span class="font-bold text-navy text-sm">{{ award.year_awarded }}</span>
+          </td>
+          <!-- School -->
+          <td class="py-3 px-4">
+            <span class="text-sm text-gray-600 flex items-center gap-1.5">
+              <i class="fas fa-school text-gray-300 text-xs shrink-0"></i>
+              {{ award.school.name|default:"—" }}
+            </span>
+          </td>
+          <!-- Actions -->
+          <td class="py-3 px-4 text-right">
+            <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {% if award.certificate %}
+              <a href="{{ award.certificate.url }}" target="_blank"
+                 class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-amber-400 hover:to-orange-500 transition"
+                 title="View Certificate">
+                <i class="fas fa-certificate text-sm"></i>
+              </a>
+              {% endif %}
+              {% if can_manage %}
+              <a href="{% url 'ldp_core:award_update' award.pk %}"
+                 class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-blue-500 hover:to-cyan-500 transition"
+                 title="Edit">
+                <i class="fas fa-edit text-sm"></i>
+              </a>
+              <a href="{% url 'ldp_core:award_delete' award.pk %}"
+                 class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-red-500 hover:to-rose-600 transition"
+                 title="Delete">
+                <i class="fas fa-trash-alt text-sm"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="py-12 px-6 text-center">
+            <div class="flex flex-col items-center justify-center">
+              <div class="p-4 rounded-full bg-lightbg text-secondary mb-3">
+                <i class="fas fa-trophy text-2xl"></i>
+              </div>
+              <span class="text-secondary font-bold text-sm">No awards recorded yet.</span>
+              {% if can_manage %}
+              <a href="{% url 'ldp_core:award_create' %}" class="mt-3 text-sm text-primary hover:underline">
+                <i class="fas fa-plus-circle mr-1"></i> Record the first award
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+    <p class="text-sm text-gray-500">Showing <span class="font-semibold text-gray-700">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span> of <span class="font-semibold text-gray-700">{{ paginator.count }}</span> awards</p>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium"><i class="fas fa-chevron-left mr-1 text-xs"></i> Prev</a>
+      {% endif %}
+      {% for num in paginator.page_range %}
+        {% if num == page_obj.number %}
+        <span class="h-8 w-8 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-bold shadow-sm">{{ num }}</span>
+        {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+        <a href="?page={{ num }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="h-8 w-8 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition text-sm">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium">Next <i class="fas fa-chevron-right ml-1 text-xs"></i></a>
+      {% endif %}
+    </div>
+  </div>
   {% endif %}
 </div>
-{% endif %}
+<script>
+function sortTable(field) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort');
+    const currentDir = url.searchParams.get('dir') || 'desc';
+    url.searchParams.set('sort', field);
+    url.searchParams.set('dir', currentSort === field && currentDir === 'asc' ? 'desc' : 'asc');
+    url.searchParams.delete('page');
+    window.location = url.toString();
+}
+</script>
 {% endblock %}

@@ -27,16 +27,37 @@
     {% endif %}
 </div>
 
+<!-- Search bar -->
+<form method="get" class="mb-4">
+    <div class="flex items-center gap-2">
+        <div class="relative flex-1 max-w-sm">
+            <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Search activities, school, description…"
+                   class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+        </div>
+        {% if search_query %}
+        <a href="?" class="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 transition" title="Clear">
+            <i class="fas fa-times text-sm"></i>
+        </a>
+        {% endif %}
+        <button type="submit" class="h-10 px-4 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-indigo-700 transition shadow-sm">
+            <i class="fas fa-search mr-1.5"></i> Search
+        </button>
+        <input type="hidden" name="sort" value="{{ current_sort }}">
+        <input type="hidden" name="dir" value="{{ current_dir }}">
+    </div>
+</form>
+
 <div class="glass-card overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="border-b border-gray-100 text-sm font-semibold text-secondary pb-2">
-                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase">Event Details</th>
-                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase">Date</th>
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('name')"><div class="inline-flex items-center gap-1">Event Details <span class="text-[10px] {% if current_sort == 'name' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'name' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('date')"><div class="inline-flex items-center gap-1">Date <span class="text-[10px] {% if current_sort == 'date' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'date' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
                     <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase">Participants</th>
-                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase">Schedule</th>
-                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase">Approval</th>
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('school')"><div class="inline-flex items-center gap-1">Schedule <span class="text-[10px] {% if current_sort == 'school' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'school' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase cursor-pointer select-none hover:text-navy transition-colors" onclick="sortTable('approval')"><div class="inline-flex items-center gap-1">Approval <span class="text-[10px] {% if current_sort == 'approval' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'approval' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></div></th>
                     <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase text-right">Actions</th>
                 </tr>
             </thead>
@@ -142,5 +163,36 @@
             </tbody>
         </table>
     </div>
+    {% if is_paginated %}
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+        <p class="text-sm text-gray-500">Showing <span class="font-semibold text-gray-700">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span> of <span class="font-semibold text-gray-700">{{ paginator.count }}</span> activities</p>
+        <div class="flex items-center gap-1">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium"><i class="fas fa-chevron-left mr-1 text-xs"></i> Prev</a>
+            {% endif %}
+            {% for num in paginator.page_range %}
+                {% if num == page_obj.number %}
+                <span class="h-8 w-8 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-bold shadow-sm">{{ num }}</span>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                <a href="?page={{ num }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="h-8 w-8 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition text-sm">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&dir={{ current_dir }}{% if search_query %}&q={{ search_query }}{% endif %}" class="h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium">Next <i class="fas fa-chevron-right ml-1 text-xs"></i></a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
+<script>
+function sortTable(field) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort');
+    const currentDir = url.searchParams.get('dir') || 'desc';
+    url.searchParams.set('sort', field);
+    url.searchParams.set('dir', currentSort === field && currentDir === 'asc' ? 'desc' : 'asc');
+    url.searchParams.delete('page');
+    window.location = url.toString();
+}
+</script>
 {% endblock %}
