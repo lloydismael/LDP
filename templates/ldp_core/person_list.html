@@ -12,7 +12,7 @@
       <p class="text-sm text-gray-500 mt-0.5">All registered participants, scholars, and principals.</p>
     </div>
     {% if user.role == 'ADMIN' or user.is_superuser or user.role == 'PRINCIPAL' %}
-    <a href="{% url 'ldp_core:person_create' %}" class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition text-sm">
+    <a href="{% url 'ldp_core:person_create' %}" class="inline-flex items-center gap-2 bg-primary hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 px-5 rounded-xl shadow-sm transition">
       <i class="fas fa-user-plus"></i> Add User
     </a>
     {% endif %}
