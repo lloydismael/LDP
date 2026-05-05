@@ -4,8 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import PasswordChangeView
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
-from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory
-from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm, PersonTransferForm
+from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob
+from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm, PersonTransferForm, ProfessionalJobForm
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.contrib import messages
@@ -902,6 +902,83 @@ class TransferDeleteView(LoginRequiredMixin, TransferMixin, DeleteView):
 
     def _get_person(self):
         return get_object_or_404(Person, pk=self.kwargs['person_pk'])
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['person'] = self._get_person()
+        return ctx
+
+    def get_success_url(self):
+        return reverse_lazy('ldp_core:person_detail', kwargs={'pk': self.kwargs['person_pk']})
+
+
+# ─── Professional Jobs ────────────────────────────────────────────────────────
+
+class JobAccessMixin(UserPassesTestMixin):
+    """Allows admin/superuser OR the professional person themselves."""
+    def _get_person(self):
+        return get_object_or_404(Person, pk=self.kwargs['person_pk'])
+
+    def test_func(self):
+        user = self.request.user
+        if user.is_superuser or user.role == 'ADMIN':
+            return True
+        person = self._get_person()
+        return hasattr(user, 'person') and user.person == person
+
+
+class JobAddView(LoginRequiredMixin, JobAccessMixin, CreateView):
+    model = ProfessionalJob
+    form_class = ProfessionalJobForm
+    template_name = 'ldp_core/job_form.html'
+
+    def form_valid(self, form):
+        job = form.save(commit=False)
+        job.person = self._get_person()
+        if job.is_current:
+            job.end_date = None
+        job.save()
+        messages.success(self.request, "Job record added successfully.")
+        return redirect('ldp_core:person_detail', pk=job.person.pk)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['person'] = self._get_person()
+        ctx['is_edit'] = False
+        return ctx
+
+
+class JobEditView(LoginRequiredMixin, JobAccessMixin, UpdateView):
+    model = ProfessionalJob
+    form_class = ProfessionalJobForm
+    template_name = 'ldp_core/job_form.html'
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(ProfessionalJob, pk=self.kwargs['pk'],
+                                 person__pk=self.kwargs['person_pk'])
+
+    def form_valid(self, form):
+        job = form.save(commit=False)
+        if job.is_current:
+            job.end_date = None
+        job.save()
+        messages.success(self.request, "Job record updated.")
+        return redirect('ldp_core:person_detail', pk=self.kwargs['person_pk'])
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['person'] = self._get_person()
+        ctx['is_edit'] = True
+        return ctx
+
+
+class JobDeleteView(LoginRequiredMixin, JobAccessMixin, DeleteView):
+    model = ProfessionalJob
+    template_name = 'ldp_core/job_confirm_delete.html'
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(ProfessionalJob, pk=self.kwargs['pk'],
+                                 person__pk=self.kwargs['person_pk'])
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

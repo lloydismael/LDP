@@ -1,7 +1,30 @@
 import re
 from django import forms
 from django.db import transaction
-from .models import Person, User, Activity, School, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory
+from .models import Person, User, Activity, School, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob
+
+
+class ProfessionalJobForm(forms.ModelForm):
+    class Meta:
+        model = ProfessionalJob
+        fields = ['job_title', 'employer', 'employment_type', 'location',
+                  'start_date', 'end_date', 'is_current', 'description']
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 4}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        is_current = cleaned.get('is_current')
+        end_date = cleaned.get('end_date')
+        start_date = cleaned.get('start_date')
+        if not is_current and not end_date:
+            self.add_error('end_date', 'End date is required unless this is your current job.')
+        if start_date and end_date and end_date < start_date:
+            self.add_error('end_date', 'End date cannot be before start date.')
+        return cleaned
 
 
 class SchoolPrincipalHistoryForm(forms.ModelForm):

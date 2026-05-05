@@ -67,7 +67,7 @@
 </div>
 
 {% if user.role == 'ADMIN' or user.is_superuser %}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
     <a href="{% url 'ldp_core:change_management' %}" class="glass-card anim-item flex items-center gap-4 group no-underline">
         <div class="h-14 w-14 rounded-full {% if pending_changes_count > 0 %}bg-yellow-100 text-yellow-600{% else %}bg-emerald-50 text-emerald-500{% endif %} flex items-center justify-center text-2xl group-hover:bg-yellow-400 group-hover:text-white transition-colors relative flex-shrink-0">
             <i class="fas fa-tasks"></i>

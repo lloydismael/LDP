@@ -183,6 +183,41 @@ class Person(models.Model):
         return f"Person {self.id}"
 
 
+class ProfessionalJob(models.Model):
+    class EmploymentType(models.TextChoices):
+        FULL_TIME = 'FULL_TIME', 'Full-time'
+        PART_TIME = 'PART_TIME', 'Part-time'
+        CONTRACT = 'CONTRACT', 'Contract'
+        FREELANCE = 'FREELANCE', 'Freelance / Self-employed'
+        INTERNSHIP = 'INTERNSHIP', 'Internship / OJT'
+        VOLUNTEER = 'VOLUNTEER', 'Volunteer'
+        OTHER = 'OTHER', 'Other'
+
+    person = models.ForeignKey(
+        'Person', on_delete=models.CASCADE, related_name='jobs'
+    )
+    job_title = models.CharField(max_length=255, verbose_name='Job Title / Position')
+    employer = models.CharField(max_length=255, verbose_name='Employer / Company')
+    employment_type = models.CharField(
+        max_length=20, choices=EmploymentType.choices, default=EmploymentType.FULL_TIME,
+        verbose_name='Employment Type'
+    )
+    location = models.CharField(max_length=255, blank=True, verbose_name='Location / Office')
+    start_date = models.DateField(verbose_name='Start Date')
+    end_date = models.DateField(null=True, blank=True, verbose_name='End Date')
+    is_current = models.BooleanField(default=False, verbose_name='Currently Working Here')
+    description = models.TextField(blank=True, verbose_name='Responsibilities / Notes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_current', '-start_date']
+        verbose_name = 'Professional Job'
+        verbose_name_plural = 'Professional Jobs'
+
+    def __str__(self):
+        return f"{self.job_title} at {self.employer}"
+
+
 class PersonTransferHistory(models.Model):
     """Tracks every school transfer made for a person."""
     class Reason(models.TextChoices):

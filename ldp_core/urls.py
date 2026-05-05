@@ -38,4 +38,8 @@ urlpatterns = [
     path('people/<int:person_pk>/transfer/', views.PersonTransferView.as_view(), name='transfer_add'),
     path('people/<int:person_pk>/transfer/<int:pk>/edit/', views.TransferEditView.as_view(), name='transfer_edit'),
     path('people/<int:person_pk>/transfer/<int:pk>/delete/', views.TransferDeleteView.as_view(), name='transfer_delete'),
+    # Professional Jobs
+    path('people/<int:person_pk>/jobs/add/', views.JobAddView.as_view(), name='job_add'),
+    path('people/<int:person_pk>/jobs/<int:pk>/edit/', views.JobEditView.as_view(), name='job_edit'),
+    path('people/<int:person_pk>/jobs/<int:pk>/delete/', views.JobDeleteView.as_view(), name='job_delete'),
 ]

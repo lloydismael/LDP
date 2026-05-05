@@ -242,6 +242,86 @@
             </div>
             {% endif %}
 
+            <!-- Professional Jobs (PROFESSIONAL type only) -->
+            {% if person.type == 'PROFESSIONAL' %}
+            {% with jobs=person.jobs.all %}
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                    <div class="h-8 w-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                        <i class="fas fa-briefcase text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-navy text-sm uppercase tracking-wider">Work Experience</h3>
+                    <span class="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-lg">{{ jobs.count }}</span>
+                    {% if user.is_superuser or user.role == 'ADMIN' or person.user == user %}
+                    <a href="{% url 'ldp_core:job_add' person.pk %}"
+                       class="ml-auto h-7 px-3 inline-flex items-center gap-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold transition">
+                        <i class="fas fa-plus text-[10px]"></i> Add Job
+                    </a>
+                    {% endif %}
+                </div>
+                {% if jobs %}
+                <div class="space-y-4">
+                    {% for job in jobs %}
+                    <div class="relative flex items-start gap-4 group">
+                        <!-- Icon -->
+                        <div class="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm
+                            {% if job.is_current %}bg-teal-100 text-teal-600{% else %}bg-slate-100 text-slate-500{% endif %}">
+                            <i class="fas fa-briefcase text-sm"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <p class="font-bold text-navy text-sm leading-tight">{{ job.job_title }}</p>
+                                    <p class="text-xs text-gray-500 mt-0.5 font-medium">{{ job.employer }}</p>
+                                </div>
+                                {% if user.is_superuser or user.role == 'ADMIN' or person.user == user %}
+                                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    <a href="{% url 'ldp_core:job_edit' person.pk job.pk %}"
+                                       class="h-6 w-6 inline-flex items-center justify-center rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                                       title="Edit"><i class="fas fa-edit text-[10px]"></i></a>
+                                    <a href="{% url 'ldp_core:job_delete' person.pk job.pk %}"
+                                       class="h-6 w-6 inline-flex items-center justify-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                       title="Delete"><i class="fas fa-trash-alt text-[10px]"></i></a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 ring-1 ring-teal-200/50">
+                                    {{ job.get_employment_type_display }}
+                                </span>
+                                {% if job.location %}
+                                <span class="text-[10px] text-gray-400"><i class="fas fa-map-marker-alt mr-0.5"></i>{{ job.location }}</span>
+                                {% endif %}
+                                <span class="text-[10px] text-gray-400">
+                                    <i class="fas fa-calendar mr-0.5"></i>{{ job.start_date|date:"M Y" }} —
+                                    {% if job.is_current %}<span class="text-teal-600 font-bold">Present</span>{% else %}{{ job.end_date|date:"M Y" }}{% endif %}
+                                </span>
+                                {% if job.is_current %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 animate-pulse">Current</span>
+                                {% endif %}
+                            </div>
+                            {% if job.description %}
+                            <p class="text-xs text-gray-400 mt-1.5 leading-relaxed">{{ job.description|truncatechars:180 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if not forloop.last %}<hr class="border-slate-100">{% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="py-4 text-center">
+                    <div class="text-slate-400 text-xs italic">No work experience records yet.</div>
+                    {% if user.is_superuser or user.role == 'ADMIN' or person.user == user %}
+                    <a href="{% url 'ldp_core:job_add' person.pk %}" class="inline-flex items-center gap-1.5 mt-2 text-xs text-teal-600 hover:underline font-medium">
+                        <i class="fas fa-plus-circle text-[10px]"></i> Add first job
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
             <!-- Transfer History -->
             {% with transfers=person.transfer_history.all %}
             <div class="glass-card p-6">
@@ -512,6 +592,15 @@
                             <i class="fas fa-building text-xs"></i>
                         </div>
                         My Organization
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or user.role == 'ADMIN' or person.user == user %}
+                    <a href="{% url 'ldp_core:job_add' person.pk %}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 text-sm font-semibold transition group">
+                        <div class="h-7 w-7 rounded-lg bg-teal-100 group-hover:bg-teal-200 flex items-center justify-center shrink-0">
+                            <i class="fas fa-briefcase text-xs"></i>
+                        </div>
+                        Add Job
                     </a>
                     {% endif %}
                     <a href="{% url 'ldp_core:activity_list' %}"
