@@ -1,6 +1,15 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- ⚡ Anti-FOUC: apply saved theme before CSS renders -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('ldp-theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In — Leadership Development Program</title>
@@ -73,9 +82,81 @@
         .btn-submit:hover { opacity:0.92;box-shadow:0 6px 20px rgba(99,102,241,0.45); }
         .btn-submit:active { opacity:0.85; }
         .form-footer { text-align:center;color:#94a3b8;font-size:0.78rem;margin-top:2rem; }
+
+        /* ══ SMOOTH THEME TRANSITION ══ */
+        *, *::before, *::after {
+            transition-property: background-color, color, border-color, box-shadow;
+            transition-duration: 0.4s;
+            transition-timing-function: ease;
+        }
+        /* Preserve hover spring on submit button */
+        .btn-submit {
+            transition: opacity 0.2s ease, box-shadow 0.2s ease !important;
+        }
+
+        /* ══ DARK MODE OVERRIDES ══ */
+        html.dark body                    { background-color: #000; }
+        html.dark .right-panel            { background: #000 !important; }
+        html.dark .mobile-logo-title      { color: #e2e8f0 !important; }
+        html.dark .form-heading h2        { color: #f1f5f9 !important; }
+        html.dark .form-heading p         { color: #64748b !important; }
+        html.dark .field label            { color: #64748b !important; }
+        html.dark .input-field            { background: #111 !important; border-color: rgba(255,255,255,0.12) !important; color: #e2e8f0 !important; }
+        html.dark .input-field:focus      { background: #0d0d0d !important; border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important; }
+        html.dark .input-icon             { color: #475569 !important; }
+        html.dark .pw-toggle              { color: #475569 !important; }
+        html.dark .pw-toggle:hover        { color: #818cf8 !important; }
+        html.dark .alert-error            { background: rgba(239,68,68,0.08) !important; border-color: rgba(239,68,68,0.3) !important; color: #fca5a5 !important; }
+        html.dark .alert-error i          { color: #f87171 !important; }
+        html.dark .alert-info             { background: rgba(59,130,246,0.08) !important; border-color: rgba(59,130,246,0.25) !important; color: #93c5fd !important; }
+        html.dark .alert-info i           { color: #60a5fa !important; }
+        html.dark .alert-warn             { background: rgba(234,179,8,0.07) !important; border-color: rgba(234,179,8,0.2) !important; color: #fde68a !important; }
+        html.dark .alert-warn i           { color: #fbbf24 !important; }
+        html.dark .form-footer            { color: #475569 !important; }
+
+        /* ══ LOGIN PAGE DARK TOGGLE BUTTON ══ */
+        #login-theme-toggle {
+            position: fixed; top: 1rem; right: 1rem; z-index: 50;
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(148,163,184,0.25);
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1) !important;
+        }
+        #login-theme-toggle:hover {
+            background-color: rgba(99,102,241,0.15) !important;
+            border-color: rgba(99,102,241,0.45) !important;
+            transform: scale(1.12) rotate(15deg) !important;
+        }
+        #login-theme-toggle:active { transform: scale(0.9) !important; transition-duration: 0.1s !important; }
+        .lt-icon {
+            position: absolute; display:flex; align-items:center; justify-content:center;
+            font-size: 0.88rem;
+            transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease !important;
+        }
+        #lt-sun  { color: #f59e0b; }
+        #lt-moon { color: #a5b4fc; }
+        html:not(.dark) #lt-moon { transform: scale(0) rotate(-90deg); opacity: 0; }
+        html:not(.dark) #lt-sun  { transform: scale(1) rotate(0deg);   opacity: 1; }
+        html.dark #lt-sun        { transform: scale(0) rotate(90deg);  opacity: 0; }
+        html.dark #lt-moon       { transform: scale(1) rotate(0deg);   opacity: 1; }
+
+        /* View Transition API — circular wipe (same in both directions) */
+        ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+        ::view-transition-new(root) { z-index: 999; }
+        ::view-transition-old(root) { z-index: 1; }
     </style>
 </head>
 <body>
+<!-- Fixed dark mode toggle (top-right corner) -->
+<button id="login-theme-toggle" title="Toggle dark / light mode" aria-label="Toggle dark mode">
+    <span class="lt-icon" id="lt-sun"><i class="fas fa-sun"></i></span>
+    <span class="lt-icon" id="lt-moon"><i class="fas fa-moon"></i></span>
+</button>
+
 <div class="page-wrap">
 
     <div class="left-panel">
@@ -173,11 +254,37 @@
 </div>
 <script>
 function togglePwd() {
-    const f = document.getElementById('id_password');
-    const i = document.getElementById('toggleIcon');
+    var f = document.getElementById('id_password');
+    var i = document.getElementById('toggleIcon');
     if (f.type === 'password') { f.type = 'text'; i.className = 'fas fa-eye-slash'; }
     else { f.type = 'password'; i.className = 'fas fa-eye'; }
 }
+
+// ── Login page dark/light toggle ──────────────────────────────────────────
+(function() {
+    var btn = document.getElementById('login-theme-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+        var isDark = document.documentElement.classList.contains('dark');
+        var rect   = btn.getBoundingClientRect();
+        var cx     = rect.left + rect.width  / 2;
+        var cy     = rect.top  + rect.height / 2;
+        var r      = Math.hypot(Math.max(cx, window.innerWidth - cx), Math.max(cy, window.innerHeight - cy));
+        function apply() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('ldp-theme', isDark ? 'light' : 'dark');
+        }
+        if (document.startViewTransition) {
+            var transition = document.startViewTransition(apply);
+            transition.ready.then(function() {
+                document.documentElement.animate(
+                    { clipPath: ['circle(0px at '+cx+'px '+cy+'px)', 'circle('+r+'px at '+cx+'px '+cy+'px)'] },
+                    { duration: 620, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)', pseudoElement: '::view-transition-new(root)' }
+                );
+            });
+        } else { apply(); }
+    });
+})();
 </script>
 </body>
 </html>
