@@ -2,6 +2,17 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
+
+class FileData(models.Model):
+    """Stores uploaded binary files in the PostgreSQL database.
+    Used by django-db-file-storage as the storage backend model."""
+    content = models.TextField()
+    mimetype = models.CharField(max_length=255)
+    filename = models.CharField(max_length=255)
+
+    class Meta:
+        app_label = 'ldp_core'
+
 class User(AbstractUser):
     class Role(models.TextChoices):
         ADMIN = 'ADMIN', 'Admin'
@@ -45,8 +56,8 @@ class School(models.Model):
     website = models.URLField(blank=True, verbose_name='Website URL')
 
     # Media
-    logo = models.ImageField(upload_to='schools/logos/', blank=True, null=True, verbose_name='School Logo')
-    banner = models.ImageField(upload_to='schools/banners/', blank=True, null=True, verbose_name='School Banner')
+    logo = models.ImageField(upload_to='ldp_core.filedata/content/filename/mimetype', blank=True, null=True, verbose_name='School Logo')
+    banner = models.ImageField(upload_to='ldp_core.filedata/content/filename/mimetype', blank=True, null=True, verbose_name='School Banner')
 
     # Other Details
     founded_year = models.CharField(max_length=10, blank=True, verbose_name='Year Founded')
@@ -114,7 +125,7 @@ class Activity(models.Model):
     name = models.CharField(max_length=255)
     date = models.DateField()
     description = models.TextField(blank=True)
-    banner = models.ImageField(upload_to='activities/banners/', blank=True, null=True, verbose_name='Activity Banner')
+    banner = models.ImageField(upload_to='ldp_core.filedata/content/filename/mimetype', blank=True, null=True, verbose_name='Activity Banner')
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='activities', null=True, blank=True)
     is_approved = models.BooleanField(default=False)
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approved_activities')
@@ -136,7 +147,7 @@ class LeadershipAward(models.Model):
     year_awarded = models.CharField(max_length=10, verbose_name='Year Awarded')
     awarding_body = models.CharField(max_length=255, blank=True, verbose_name='Awarding Body / Organization')
     description = models.TextField(blank=True, verbose_name='Description / Notes')
-    certificate = models.ImageField(upload_to='awards/certificates/', blank=True, null=True, verbose_name='Certificate / Photo')
+    certificate = models.ImageField(upload_to='ldp_core.filedata/content/filename/mimetype', blank=True, null=True, verbose_name='Certificate / Photo')
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='awards', verbose_name='School')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -161,8 +172,8 @@ class Person(models.Model):
     activities = models.ManyToManyField(Activity, blank=True, related_name='participants')
     
     # Profile Extensions
-    profile_photo = models.ImageField(upload_to='profiles/', blank=True, null=True)
-    banner = models.ImageField(upload_to='profiles/banners/', blank=True, null=True, verbose_name='Profile Banner')
+    profile_photo = models.ImageField(upload_to='ldp_core.filedata/content/filename/mimetype', blank=True, null=True)
+    banner = models.ImageField(upload_to='ldp_core.filedata/content/filename/mimetype', blank=True, null=True, verbose_name='Profile Banner')
     contact_number = models.CharField(max_length=50, blank=True)
     address = models.TextField(blank=True)
     bio = models.TextField(blank=True)

@@ -13,6 +13,19 @@ SECRET_KEY = env('SECRET_KEY', default='placeholder-secret-key')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['*'])
 
+# ── Reverse-proxy / Azure Web App settings ──────────────────────────────────
+# Trust X-Forwarded-Proto so Django sees requests as HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# CSRF: trust every origin listed in CSRF_TRUSTED_ORIGINS env var (comma-separated),
+# plus any *.azurewebsites.net host by default so the app works out of the box.
+_csrf_extra = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.azurewebsites.net',
+    'http://*.azurewebsites.net',
+] + _csrf_extra
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -20,6 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'db_file_storage',
     'rest_framework',
     'ldp_core',
 ]
@@ -80,7 +94,11 @@ AUTH_USER_MODEL = 'ldp_core.User'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = 'login'
 
-import os
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# ── Media / File Storage — PostgreSQL backend ──────────────────────────────
+# All uploaded files (profile photos, logos, banners, certificates) are stored
+# as binary data directly in the PostgreSQL database via django-db-file-storage.
+# No Azure Blob Storage or file shares required — everything lives in one DB.
+DEFAULT_FILE_STORAGE = 'db_file_storage.storage.DatabaseFileStorage'
+MEDIA_URL = '/files/'
+MEDIA_ROOT = ''
 
