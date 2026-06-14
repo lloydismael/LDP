@@ -10,6 +10,12 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
+from django.conf import settings
+from django.contrib.auth import get_user_model
+import csv
+import io
+import json
 
 @login_required
 def dashboard(request):
@@ -541,6 +547,486 @@ def toggle_activity_approval(request, pk):
         messages.error(request, "You do not have permission to approve this activity.")
     
     return HttpResponseRedirect(reverse_lazy('ldp_core:activity_list'))
+
+
+MIGRATION_DEFAULT_MAPPING = {
+    'schools': {'school_name': 'name', 'schoolName': 'name', 'emis_no': 'school_id', 'school_code': 'school_id', 'type': 'school_type', 'municipality': 'location', 'city': 'location', 'contact_email': 'email', 'contact_number': 'phone', 'telephone': 'phone', 'active': 'is_active'},
+    'users': {'user_name': 'username', 'login': 'username', 'given_name': 'first_name', 'surname': 'last_name', 'mail': 'email', 'user_type': 'role', 'account_type': 'role', 'active': 'is_active'},
+    'people': {'person_type': 'type', 'learner_type': 'type', 'school': 'school_name', 'schoolName': 'school_name', 'school_code': 'school_id', 'user': 'username', 'user_name': 'username', 'student_no': 'student_id', 'lrn': 'student_id', 'grade_level': 'year_level', 'program': 'course_program', 'batch': 'section'},
+    'activities': {'title': 'name', 'activity_name': 'name', 'activity_date': 'date', 'notes': 'description', 'school': 'school_name', 'schoolName': 'school_name', 'school_code': 'school_id', 'approved': 'is_approved'},
+    'awards': {'title': 'award_title', 'name': 'award_title', 'level': 'award_level', 'year': 'year_awarded', 'body': 'awarding_body', 'organization': 'awarding_body', 'notes': 'description', 'recipient': 'recipient_name', 'awardee': 'recipient_name', 'recipient_user': 'recipient_username', 'school': 'school_name', 'schoolName': 'school_name', 'school_code': 'school_id'},
+}
+
+
+def _migration_entity(model_name, fallback=''):
+    label = f'{model_name or fallback}'.lower()
+    if 'leadershipaward' in label or 'award' in label:
+        return 'awards'
+    if 'activity' in label:
+        return 'activities'
+    if 'person' in label or 'profile' in label or 'student' in label or 'scholar' in label:
+        return 'people'
+    if 'user' in label or 'auth.' in label:
+        return 'users'
+    if 'school' in label:
+        return 'schools'
+    return ''
+
+
+def _migration_rows(payload):
+    rows = []
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            entity = _migration_entity('', key)
+            if entity and isinstance(value, list):
+                rows.extend({'entity': entity, 'legacy_pk': item.get('id') or item.get('pk'), 'fields': item} for item in value if isinstance(item, dict))
+        return rows
+    if isinstance(payload, list):
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            if 'model' in item and 'fields' in item:
+                rows.append({'entity': _migration_entity(item.get('model')), 'legacy_pk': item.get('pk'), 'fields': item.get('fields') if isinstance(item.get('fields'), dict) else {}})
+            else:
+                rows.append({'entity': _migration_entity(item.get('model') or item.get('entity') or item.get('type')), 'legacy_pk': item.get('id') or item.get('pk'), 'fields': item})
+    return rows
+
+
+def _mapped_fields(entity, fields, custom_mapping):
+    mapping = {**MIGRATION_DEFAULT_MAPPING.get(entity, {}), **custom_mapping.get(entity, {})}
+    return {mapping.get(key, key): value for key, value in fields.items()}
+
+
+def _bool_value(value, default=False):
+    if value in (True, False):
+        return value
+    if value is None or value == '':
+        return default
+    return str(value).strip().lower() in {'1', 'true', 'yes', 'y', 'active', 'enabled'}
+
+
+def _role_value(value):
+    User = get_user_model()
+    role = str(value or User.Role.VIEWER).upper()
+    return role if role in dict(User.Role.choices) else User.Role.VIEWER
+
+
+def _resolve_school(row):
+    school_id = row.get('school_id') or row.get('school_code')
+    if school_id:
+        school = School.objects.filter(Q(school_id=school_id) | Q(pk=school_id)).first()
+        if school:
+            return school
+    school_name = row.get('school_name') or row.get('school')
+    if school_name:
+        return School.objects.filter(name__iexact=str(school_name).strip()).first()
+    return None
+
+
+def _preview_action(model, lookup, conflict_strategy):
+    exists = model.objects.filter(**lookup).exists()
+    if exists and conflict_strategy == 'create_only':
+        return 'skipped'
+    if not exists and conflict_strategy == 'update_only':
+        return 'skipped'
+    return 'updated' if exists else 'created'
+
+
+def _bump_migration(report, entity, action, sample=None):
+    if action in {'created', 'updated'}:
+        report[action] += 1
+        report['entities'][entity][action] += 1
+    else:
+        report['skipped'] += 1
+        report['entities'][entity]['skipped'] += 1
+    if sample and len(report['entities'][entity]['samples']) < 3:
+        report['entities'][entity]['samples'].append(sample)
+
+
+def _apply_or_preview_legacy_migration(payload, selected_entities, custom_mapping, conflict_strategy, preview=True):
+    User = get_user_model()
+    report = {
+        'preview': preview,
+        'strategy': conflict_strategy,
+        'source_rows': 0,
+        'compatible_rows': 0,
+        'created': 0,
+        'updated': 0,
+        'skipped': 0,
+        'entities': {entity: {'created': 0, 'updated': 0, 'skipped': 0, 'samples': []} for entity in selected_entities},
+    }
+    rows_by_entity = {entity: [] for entity in selected_entities}
+    for row in _migration_rows(payload):
+        report['source_rows'] += 1
+        entity = row.get('entity')
+        if entity in rows_by_entity:
+            mapped = _mapped_fields(entity, row.get('fields', {}), custom_mapping)
+            mapped['legacy_pk'] = row.get('legacy_pk')
+            rows_by_entity[entity].append(mapped)
+            report['compatible_rows'] += 1
+
+    from django.db import transaction
+    with transaction.atomic():
+        for row in rows_by_entity.get('schools', []):
+            name = str(row.get('name') or '').strip()
+            if not name:
+                _bump_migration(report, 'schools', 'skipped', {'reason': 'Missing school name'})
+                continue
+            lookup = {'school_id': row.get('school_id')} if row.get('school_id') else {'name': name}
+            action = _preview_action(School, lookup, conflict_strategy)
+            if action == 'skipped':
+                _bump_migration(report, 'schools', action, {'name': name, 'match': lookup})
+                continue
+            defaults = {'name': name, 'school_type': row.get('school_type', ''), 'category': row.get('category', ''), 'address': row.get('address', ''), 'location': row.get('location', 'Philippines') or 'Philippines', 'district': row.get('district', ''), 'division': row.get('division', ''), 'province': row.get('province', ''), 'region': row.get('region', ''), 'email': row.get('email', ''), 'phone': row.get('phone', ''), 'website': row.get('website', ''), 'is_active': _bool_value(row.get('is_active'), True)}
+            if not preview:
+                School.objects.update_or_create(defaults=defaults, **lookup)
+            _bump_migration(report, 'schools', action, {'name': name, 'match': lookup})
+
+        for row in rows_by_entity.get('users', []):
+            username = str(row.get('username') or row.get('email') or '').strip()
+            if not username:
+                _bump_migration(report, 'users', 'skipped', {'reason': 'Missing username'})
+                continue
+            action = _preview_action(User, {'username': username}, conflict_strategy)
+            if action == 'skipped':
+                _bump_migration(report, 'users', action, {'username': username})
+                continue
+            defaults = {'first_name': row.get('first_name', ''), 'last_name': row.get('last_name', ''), 'email': row.get('email', ''), 'role': _role_value(row.get('role')), 'is_active': _bool_value(row.get('is_active'), True)}
+            if not preview:
+                user, created = User.objects.get_or_create(username=username, defaults=defaults)
+                if not created:
+                    for key, value in defaults.items():
+                        setattr(user, key, value)
+                if created:
+                    user.set_unusable_password()
+                user.save()
+            _bump_migration(report, 'users', action, {'username': username, 'role': defaults['role']})
+
+        for row in rows_by_entity.get('people', []):
+            username = str(row.get('username') or '').strip()
+            user = User.objects.filter(username=username).first() if username else None
+            if not user and row.get('email'):
+                user = User.objects.filter(email=row.get('email')).first()
+            if not user:
+                _bump_migration(report, 'people', 'skipped', {'reason': 'No matching user'})
+                continue
+            action = _preview_action(Person, {'user': user}, conflict_strategy)
+            if action == 'skipped':
+                _bump_migration(report, 'people', action, {'username': user.username})
+                continue
+            school = _resolve_school(row)
+            defaults = {'type': row.get('type') or Person.Type.STUDENT, 'school': school, 'contact_number': row.get('contact_number', ''), 'address': row.get('address', ''), 'bio': row.get('bio', ''), 'student_id': row.get('student_id', ''), 'year_level': row.get('year_level', ''), 'course_program': row.get('course_program', ''), 'section': row.get('section', ''), 'scholarship_type': row.get('scholarship_type', ''), 'year_started': row.get('year_started', ''), 'year_ended': row.get('year_ended', '')}
+            if not preview:
+                Person.objects.update_or_create(user=user, defaults=defaults)
+            _bump_migration(report, 'people', action, {'username': user.username, 'school': school.name if school else ''})
+
+        for row in rows_by_entity.get('activities', []):
+            name = str(row.get('name') or '').strip()
+            date = row.get('date')
+            if not name or not date:
+                _bump_migration(report, 'activities', 'skipped', {'reason': 'Missing name/date'})
+                continue
+            action = _preview_action(Activity, {'name': name, 'date': date}, conflict_strategy)
+            if action == 'skipped':
+                _bump_migration(report, 'activities', action, {'name': name})
+                continue
+            defaults = {'description': row.get('description', ''), 'school': _resolve_school(row), 'is_approved': _bool_value(row.get('is_approved'), False)}
+            if not preview:
+                Activity.objects.update_or_create(name=name, date=date, defaults=defaults)
+            _bump_migration(report, 'activities', action, {'name': name, 'date': date})
+
+        for row in rows_by_entity.get('awards', []):
+            title = str(row.get('award_title') or '').strip()
+            year = str(row.get('year_awarded') or '').strip()
+            recipient = Person.objects.filter(user__username=row.get('recipient_username')).first() if row.get('recipient_username') else None
+            if not recipient and row.get('recipient_id'):
+                recipient = Person.objects.filter(pk=row.get('recipient_id')).first()
+            if not recipient or not title or not year:
+                _bump_migration(report, 'awards', 'skipped', {'title': title, 'reason': 'Missing recipient/title/year'})
+                continue
+            action = _preview_action(LeadershipAward, {'recipient': recipient, 'award_title': title, 'year_awarded': year}, conflict_strategy)
+            if action == 'skipped':
+                _bump_migration(report, 'awards', action, {'title': title})
+                continue
+            defaults = {'award_level': row.get('award_level') or LeadershipAward.AwardLevel.SCHOOL, 'awarding_body': row.get('awarding_body', ''), 'description': row.get('description', ''), 'school': _resolve_school(row) or recipient.school}
+            if not preview:
+                LeadershipAward.objects.update_or_create(recipient=recipient, award_title=title, year_awarded=year, defaults=defaults)
+            _bump_migration(report, 'awards', action, {'title': title, 'recipient': str(recipient)})
+
+        if preview:
+            transaction.set_rollback(True)
+    return report
+
+
+@login_required
+def legacy_migration(request):
+    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
+        messages.error(request, "Access denied.")
+        return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
+    if request.method != 'POST':
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+    upload = request.FILES.get('migration_file')
+    if not upload:
+        messages.error(request, 'Please choose a legacy JSON file to migrate.')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+    try:
+        payload = json.loads(upload.read().decode('utf-8'))
+    except Exception as exc:
+        messages.error(request, f'Invalid migration JSON file: {exc}')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+    selected_entities = [entity for entity in (request.POST.getlist('entities') or ['schools', 'users', 'people', 'activities', 'awards']) if entity in {'schools', 'users', 'people', 'activities', 'awards'}]
+    conflict_strategy = request.POST.get('conflict_strategy') or 'upsert'
+    if conflict_strategy not in {'upsert', 'create_only', 'update_only'}:
+        conflict_strategy = 'upsert'
+    try:
+        custom_mapping = json.loads(request.POST.get('field_mapping') or '{}')
+        if not isinstance(custom_mapping, dict):
+            raise ValueError('Field mapping must be a JSON object.')
+    except Exception as exc:
+        messages.error(request, f'Invalid custom field mapping: {exc}')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+    preview = request.POST.get('migration_mode') != 'apply'
+    try:
+        report = _apply_or_preview_legacy_migration(payload, selected_entities, custom_mapping, conflict_strategy, preview=preview)
+    except Exception as exc:
+        messages.error(request, f'Migration failed: {exc}')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+    request.session['migration_report'] = report
+    request.session.modified = True
+    if preview:
+        messages.info(request, f"Migration preview complete: {report['compatible_rows']} compatible row(s), {report['created']} create candidate(s), {report['updated']} update candidate(s), {report['skipped']} skipped.")
+    else:
+        messages.success(request, f"Migration applied: {report['created']} created, {report['updated']} updated, {report['skipped']} skipped.")
+    return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+
+
+@login_required
+def settings_page(request):
+    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
+        messages.error(request, "Access denied.")
+        return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
+
+    feature_flags = request.session.get('feature_flags', {
+        'allow_import': True,
+        'allow_export': True,
+        'school_sync_enabled': True,
+        'user_sync_enabled': True,
+        'activity_sync_enabled': True,
+        'award_sync_enabled': True,
+    })
+
+    context = {
+        'feature_flags': feature_flags,
+        'school_count': School.objects.count(),
+        'user_count': get_user_model().objects.count(),
+        'activity_count': Activity.objects.count(),
+        'award_count': LeadershipAward.objects.count(),
+        'migration_report': request.session.get('migration_report'),
+        'migration_default_mapping': json.dumps(MIGRATION_DEFAULT_MAPPING, indent=2),
+    }
+    return render(request, 'ldp_core/settings.html', context)
+
+
+@login_required
+def settings_toggle(request):
+    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
+        return JsonResponse({'ok': False, 'message': 'Access denied.'}, status=403)
+
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'message': 'Invalid request method.'}, status=405)
+
+    key = request.POST.get('key')
+    value = request.POST.get('value') == 'true'
+    allowed = {
+        'allow_import',
+        'allow_export',
+        'school_sync_enabled',
+        'user_sync_enabled',
+        'activity_sync_enabled',
+        'award_sync_enabled',
+    }
+
+    if key not in allowed:
+        return JsonResponse({'ok': False, 'message': 'Invalid setting key.'}, status=400)
+
+    flags = request.session.get('feature_flags', {
+        'allow_import': True,
+        'allow_export': True,
+        'school_sync_enabled': True,
+        'user_sync_enabled': True,
+        'activity_sync_enabled': True,
+        'award_sync_enabled': True,
+    })
+    flags[key] = value
+    request.session['feature_flags'] = flags
+    request.session.modified = True
+
+    return JsonResponse({'ok': True, 'key': key, 'value': value})
+
+
+@login_required
+def export_data(request, data_type):
+    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
+        messages.error(request, "Access denied.")
+        return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
+
+    flags = request.session.get('feature_flags', {'allow_export': True})
+    if not flags.get('allow_export', True):
+        messages.error(request, 'Export is currently disabled in settings.')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+
+    data_type = data_type.lower()
+    if data_type == 'schools':
+        rows = list(School.objects.values('id', 'name', 'school_id', 'school_type', 'location', 'district', 'division', 'province', 'region', 'email', 'phone', 'is_active'))
+    elif data_type == 'users':
+        User = get_user_model()
+        rows = list(User.objects.values('id', 'username', 'first_name', 'last_name', 'email', 'role', 'is_active'))
+    elif data_type == 'activities':
+        rows = list(Activity.objects.values('id', 'name', 'date', 'description', 'school_id', 'is_approved', 'approved_by_id'))
+    elif data_type == 'awards':
+        if not flags.get('award_sync_enabled', True):
+            messages.error(request, 'Leadership awardees export is disabled in settings.')
+            return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+        rows = list(
+            LeadershipAward.objects.values(
+                'id',
+                'recipient_id',
+                'award_title',
+                'award_level',
+                'year_awarded',
+                'awarding_body',
+                'description',
+                'school_id',
+            )
+        )
+    else:
+        messages.error(request, 'Unsupported export type.')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+
+    response = HttpResponse(content_type='application/json')
+    response['Content-Disposition'] = f'attachment; filename="{data_type}.json"'
+    response.write(json.dumps(rows, default=str, indent=2))
+    return response
+
+
+@login_required
+def import_data(request, data_type):
+    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
+        messages.error(request, "Access denied.")
+        return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
+
+    flags = request.session.get('feature_flags', {'allow_import': True})
+    if not flags.get('allow_import', True):
+        messages.error(request, 'Import is currently disabled in settings.')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+
+    if request.method != 'POST':
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+
+    upload = request.FILES.get('import_file')
+    if not upload:
+        messages.error(request, 'Please choose a JSON file to import.')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+
+    try:
+        payload = json.loads(upload.read().decode('utf-8'))
+        if not isinstance(payload, list):
+            raise ValueError('Payload must be a list.')
+    except Exception as exc:
+        messages.error(request, f'Invalid JSON file: {exc}')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+
+    data_type = data_type.lower()
+    imported = 0
+
+    if data_type == 'schools':
+        for row in payload:
+            name = (row.get('name') or '').strip()
+            if not name:
+                continue
+            School.objects.update_or_create(
+                name=name,
+                defaults={
+                    'school_id': row.get('school_id', ''),
+                    'school_type': row.get('school_type', ''),
+                    'location': row.get('location', 'Philippines') or 'Philippines',
+                    'district': row.get('district', ''),
+                    'division': row.get('division', ''),
+                    'province': row.get('province', ''),
+                    'region': row.get('region', ''),
+                    'email': row.get('email', ''),
+                    'phone': row.get('phone', ''),
+                    'is_active': bool(row.get('is_active', True)),
+                }
+            )
+            imported += 1
+    elif data_type == 'users':
+        User = get_user_model()
+        for row in payload:
+            username = (row.get('username') or '').strip()
+            if not username:
+                continue
+            defaults = {
+                'first_name': row.get('first_name', ''),
+                'last_name': row.get('last_name', ''),
+                'email': row.get('email', ''),
+                'role': row.get('role', User.Role.VIEWER),
+                'is_active': bool(row.get('is_active', True)),
+            }
+            user, created = User.objects.get_or_create(username=username, defaults=defaults)
+            if not created:
+                for k, v in defaults.items():
+                    setattr(user, k, v)
+                user.save()
+            imported += 1
+    elif data_type == 'activities':
+        for row in payload:
+            name = (row.get('name') or '').strip()
+            if not name:
+                continue
+            Activity.objects.update_or_create(
+                name=name,
+                date=row.get('date'),
+                defaults={
+                    'description': row.get('description', ''),
+                    'school_id': row.get('school_id'),
+                    'is_approved': bool(row.get('is_approved', False)),
+                    'approved_by_id': row.get('approved_by_id'),
+                }
+            )
+            imported += 1
+    elif data_type == 'awards':
+        if not flags.get('award_sync_enabled', True):
+            messages.error(request, 'Leadership awardees import is disabled in settings.')
+            return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+        for row in payload:
+            recipient_id = row.get('recipient_id')
+            award_title = (row.get('award_title') or '').strip()
+            year_awarded = (row.get('year_awarded') or '').strip()
+            if not recipient_id or not award_title or not year_awarded:
+                continue
+
+            if not Person.objects.filter(pk=recipient_id).exists():
+                continue
+
+            LeadershipAward.objects.update_or_create(
+                recipient_id=recipient_id,
+                award_title=award_title,
+                year_awarded=year_awarded,
+                defaults={
+                    'award_level': row.get('award_level') or LeadershipAward.AwardLevel.SCHOOL,
+                    'awarding_body': row.get('awarding_body', ''),
+                    'description': row.get('description', ''),
+                    'school_id': row.get('school_id'),
+                }
+            )
+            imported += 1
+    else:
+        messages.error(request, 'Unsupported import type.')
+        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+
+    messages.success(request, f'Successfully imported {imported} {data_type} record(s).')
+    return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):

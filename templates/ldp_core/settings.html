@@ -1,0 +1,366 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6 settings-page">
+    <section class="glass-card hero-panel border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 text-white overflow-hidden relative">
+        <div class="absolute -top-12 -right-8 w-40 h-40 rounded-full bg-white/10 blur-2xl"></div>
+        <div class="absolute -bottom-16 -left-10 w-48 h-48 rounded-full bg-black/10 blur-2xl"></div>
+        <div class="relative z-10 flex items-start justify-between gap-4 flex-wrap">
+            <div>
+                <p class="uppercase tracking-[0.18em] text-xs font-semibold text-indigo-100 mb-2">Configuration Center</p>
+                <h3 class="text-3xl font-bold mb-2 flex items-center gap-3">
+                    <i class="fas fa-sliders-h"></i>
+                    Admin Settings
+                </h3>
+                <p class="text-sm text-indigo-100 max-w-xl">Manage system behaviors and control import/export pipelines for schools, users, and activities from one dashboard.</p>
+            </div>
+            <div class="inline-flex items-center gap-2 bg-white/15 border border-white/30 rounded-full px-4 py-2 text-xs font-semibold badge-pop">
+                <i class="fas fa-shield-alt"></i>
+                RESTRICTED ACCESS
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card border border-gray-100">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <h4 class="text-lg font-bold text-navy flex items-center gap-2">
+                <i class="fas fa-toggle-on text-indigo-600"></i>
+                Feature Controls
+            </h4>
+            <p class="text-xs text-gray-500">Changes are saved automatically.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label class="feature-tile panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-file-import text-emerald-600"></i>Allow Import</p>
+                    <p class="text-xs text-gray-500 mt-1">Enable importing school, user, and activity datasets.</p>
+                </div>
+                <span class="toggle-wrap">
+                    <input type="checkbox" class="setting-toggle" data-key="allow_import" {% if feature_flags.allow_import %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </span>
+            </label>
+
+            <label class="feature-tile panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-file-export text-indigo-600"></i>Allow Export</p>
+                    <p class="text-xs text-gray-500 mt-1">Enable exporting current records as JSON files.</p>
+                </div>
+                <span class="toggle-wrap">
+                    <input type="checkbox" class="setting-toggle" data-key="allow_export" {% if feature_flags.allow_export %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </span>
+            </label>
+
+            <label class="feature-tile panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-school text-blue-600"></i>School Sync</p>
+                    <p class="text-xs text-gray-500 mt-1">Allow school data import and export operations.</p>
+                </div>
+                <span class="toggle-wrap">
+                    <input type="checkbox" class="setting-toggle" data-key="school_sync_enabled" {% if feature_flags.school_sync_enabled %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </span>
+            </label>
+
+            <label class="feature-tile panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-users text-violet-600"></i>User Sync</p>
+                    <p class="text-xs text-gray-500 mt-1">Allow user profile data import and export.</p>
+                </div>
+                <span class="toggle-wrap">
+                    <input type="checkbox" class="setting-toggle" data-key="user_sync_enabled" {% if feature_flags.user_sync_enabled %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </span>
+            </label>
+
+            <label class="feature-tile panel-muted p-4 rounded-xl border border-gray-200 bg-white md:col-span-2">
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-calendar-alt text-amber-600"></i>Activity Sync</p>
+                    <p class="text-xs text-gray-500 mt-1">Allow activity lifecycle data import and export.</p>
+                </div>
+                <span class="toggle-wrap">
+                    <input type="checkbox" class="setting-toggle" data-key="activity_sync_enabled" {% if feature_flags.activity_sync_enabled %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </span>
+            </label>
+
+            <label class="feature-tile panel-muted p-4 rounded-xl border border-gray-200 bg-white md:col-span-2">
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-award text-rose-600"></i>Leadership Awardees Sync</p>
+                    <p class="text-xs text-gray-500 mt-1">Allow leadership awardees data import and export.</p>
+                </div>
+                <span class="toggle-wrap">
+                    <input type="checkbox" class="setting-toggle" data-key="award_sync_enabled" {% if feature_flags.award_sync_enabled %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </span>
+            </label>
+        </div>
+    </section>
+
+    <section class="glass-card border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-indigo-50">
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-5">
+            <div>
+                <h4 class="text-lg font-bold text-navy flex items-center gap-2">
+                    <i class="fas fa-database text-cyan-600"></i>
+                    Legacy Data Migration Center
+                </h4>
+                <p class="text-xs text-gray-500 mt-1 max-w-2xl">Preview, customize, and safely apply data from a previous LDP application. Supports Django fixture exports and grouped JSON objects.</p>
+            </div>
+            <span class="text-xs px-3 py-1 rounded-full bg-cyan-100 text-cyan-700 font-semibold">Preview before apply</span>
+        </div>
+
+        <form method="post" action="{% url 'ldp_core:legacy_migration' %}" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Legacy JSON file</label>
+                    <input type="file" name="migration_file" accept="application/json" class="import-file w-full text-xs" required>
+                    <p class="text-xs text-gray-500 mt-2">Accepted: Django fixtures or JSON with schools/users/people/activities/awards arrays.</p>
+                </div>
+
+                <div class="panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Migration mode</label>
+                    <select name="migration_mode" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+                        <option value="preview">Preview only - no database changes</option>
+                        <option value="apply">Apply migration</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-2">Use preview to verify compatibility before writing data.</p>
+                </div>
+
+                <div class="panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Conflict strategy</label>
+                    <select name="conflict_strategy" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+                        <option value="upsert">Create new and update existing</option>
+                        <option value="create_only">Create only, skip existing</option>
+                        <option value="update_only">Update only, skip missing</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-2">Controls how records are handled before and after migration.</p>
+                </div>
+            </div>
+
+            <div class="panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                <p class="text-sm font-bold text-gray-700 mb-3">Data modules to migrate</p>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="entities" value="schools" checked> Schools</label>
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="entities" value="users" checked> Users</label>
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="entities" value="people" checked> Profiles</label>
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="entities" value="activities" checked> Activities</label>
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="entities" value="awards" checked> Awardees</label>
+                </div>
+            </div>
+
+            <div class="panel-muted p-4 rounded-xl border border-gray-200 bg-white">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Custom field mapping JSON</label>
+                <textarea name="field_mapping" rows="8" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-mono bg-white" spellcheck="false">{{ migration_default_mapping }}</textarea>
+                <p class="text-xs text-gray-500 mt-2">Customize legacy field names on the left to this app's field names on the right. Leave as-is for automatic compatibility mapping.</p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold inline-flex items-center gap-2"><i class="fas fa-search"></i>Run Migration Check / Apply</button>
+                <a href="{% url 'ldp_core:settings' %}" class="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg text-sm font-semibold inline-flex items-center gap-2"><i class="fas fa-sync-alt"></i>Refresh Report</a>
+            </div>
+        </form>
+
+        {% if migration_report %}
+        <div class="mt-5 border border-cyan-100 rounded-xl bg-white/80 p-4">
+            <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+                <h5 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-clipboard-check text-cyan-600"></i>Latest Migration Report</h5>
+                <span class="text-xs px-2 py-1 rounded-full {% if migration_report.preview %}bg-amber-100 text-amber-700{% else %}bg-emerald-100 text-emerald-700{% endif %} font-semibold">{% if migration_report.preview %}PREVIEW{% else %}APPLIED{% endif %}</span>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center text-sm mb-4">
+                <div class="rounded-lg bg-gray-50 p-3"><p class="font-bold text-lg">{{ migration_report.source_rows }}</p><p class="text-xs text-gray-500">Source Rows</p></div>
+                <div class="rounded-lg bg-cyan-50 p-3"><p class="font-bold text-lg">{{ migration_report.compatible_rows }}</p><p class="text-xs text-gray-500">Compatible</p></div>
+                <div class="rounded-lg bg-emerald-50 p-3"><p class="font-bold text-lg">{{ migration_report.created }}</p><p class="text-xs text-gray-500">Created</p></div>
+                <div class="rounded-lg bg-indigo-50 p-3"><p class="font-bold text-lg">{{ migration_report.updated }}</p><p class="text-xs text-gray-500">Updated</p></div>
+                <div class="rounded-lg bg-rose-50 p-3"><p class="font-bold text-lg">{{ migration_report.skipped }}</p><p class="text-xs text-gray-500">Skipped</p></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                {% for entity, stats in migration_report.entities.items %}
+                <div class="rounded-lg border border-gray-100 p-3 bg-white">
+                    <p class="font-bold capitalize text-gray-800 mb-1">{{ entity }}</p>
+                    <p>Created: {{ stats.created }}</p>
+                    <p>Updated: {{ stats.updated }}</p>
+                    <p>Skipped: {{ stats.skipped }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="glass-card data-card border border-blue-100 bg-gradient-to-br from-blue-50 to-white">
+            <div class="flex items-center justify-between mb-3">
+                <h5 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-school text-blue-600"></i>Schools</h5>
+                <span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">{{ school_count }} records</span>
+            </div>
+            <a href="{% url 'ldp_core:export_data' 'schools' %}" class="action-link mb-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold"><i class="fas fa-download"></i>Export Schools</a>
+            <form method="post" action="{% url 'ldp_core:import_data' 'schools' %}" enctype="multipart/form-data" class="space-y-2">
+                {% csrf_token %}
+                <input type="file" name="import_file" accept="application/json" class="import-file w-full text-xs" required>
+                <button type="submit" class="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2"><i class="fas fa-upload"></i>Import Schools</button>
+            </form>
+        </div>
+
+        <div class="glass-card data-card border border-violet-100 bg-gradient-to-br from-violet-50 to-white">
+            <div class="flex items-center justify-between mb-3">
+                <h5 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-users text-violet-600"></i>Users</h5>
+                <span class="text-xs px-2 py-1 rounded-full bg-violet-100 text-violet-700 font-semibold">{{ user_count }} records</span>
+            </div>
+            <a href="{% url 'ldp_core:export_data' 'users' %}" class="action-link mb-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold"><i class="fas fa-download"></i>Export Users</a>
+            <form method="post" action="{% url 'ldp_core:import_data' 'users' %}" enctype="multipart/form-data" class="space-y-2">
+                {% csrf_token %}
+                <input type="file" name="import_file" accept="application/json" class="import-file w-full text-xs" required>
+                <button type="submit" class="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2"><i class="fas fa-upload"></i>Import Users</button>
+            </form>
+        </div>
+
+        <div class="glass-card data-card border border-amber-100 bg-gradient-to-br from-amber-50 to-white">
+            <div class="flex items-center justify-between mb-3">
+                <h5 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-calendar-alt text-amber-600"></i>Activities</h5>
+                <span class="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-semibold">{{ activity_count }} records</span>
+            </div>
+            <a href="{% url 'ldp_core:export_data' 'activities' %}" class="action-link mb-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold"><i class="fas fa-download"></i>Export Activities</a>
+            <form method="post" action="{% url 'ldp_core:import_data' 'activities' %}" enctype="multipart/form-data" class="space-y-2">
+                {% csrf_token %}
+                <input type="file" name="import_file" accept="application/json" class="import-file w-full text-xs" required>
+                <button type="submit" class="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2"><i class="fas fa-upload"></i>Import Activities</button>
+            </form>
+        </div>
+
+        <div class="glass-card data-card border border-rose-100 bg-gradient-to-br from-rose-50 to-white">
+            <div class="flex items-center justify-between mb-3">
+                <h5 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-award text-rose-600"></i>Leadership Awardees</h5>
+                <span class="text-xs px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-semibold">{{ award_count }} records</span>
+            </div>
+            <a href="{% url 'ldp_core:export_data' 'awards' %}" class="action-link mb-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold"><i class="fas fa-download"></i>Export Awardees</a>
+            <form method="post" action="{% url 'ldp_core:import_data' 'awards' %}" enctype="multipart/form-data" class="space-y-2">
+                {% csrf_token %}
+                <input type="file" name="import_file" accept="application/json" class="import-file w-full text-xs" required>
+                <button type="submit" class="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2"><i class="fas fa-upload"></i>Import Awardees</button>
+            </form>
+        </div>
+    </section>
+</div>
+
+<style>
+    .hero-panel {
+        position: relative;
+        isolation: isolate;
+    }
+    .feature-tile {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
+    }
+    .feature-tile:hover {
+        transform: translateY(-2px);
+        border-color: rgba(99, 102, 241, 0.35);
+        box-shadow: 0 10px 25px -14px rgba(79, 70, 229, 0.45);
+    }
+    .toggle-wrap {
+        position: relative;
+        width: 52px;
+        height: 30px;
+        flex-shrink: 0;
+    }
+    .setting-toggle {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 2;
+    }
+    .toggle-track {
+        position: absolute;
+        inset: 0;
+        background: #cbd5e1;
+        border-radius: 999px;
+        transition: background-color 0.25s ease;
+    }
+    .toggle-track::after {
+        content: '';
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        left: 4px;
+        top: 4px;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+        transition: transform 0.25s ease;
+    }
+    .setting-toggle:checked + .toggle-track {
+        background: linear-gradient(135deg, #4f46e5, #2563eb);
+    }
+    .setting-toggle:checked + .toggle-track::after {
+        transform: translateX(22px);
+    }
+    .data-card {
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .data-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 30px -20px rgba(15, 23, 42, 0.35);
+    }
+    .import-file {
+        border: 1px dashed #cbd5e1;
+        border-radius: 0.65rem;
+        padding: 0.45rem 0.65rem;
+        background: rgba(255,255,255,0.7);
+    }
+    .action-link {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .action-link:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px -10px rgba(79, 70, 229, 0.6);
+    }
+
+    html.dark .panel-muted {
+        background: #111 !important;
+        border-color: rgba(255,255,255,0.08) !important;
+    }
+    html.dark .toggle-track {
+        background: #334155;
+    }
+    html.dark .import-file {
+        background: #0f172a;
+        border-color: rgba(255,255,255,0.1);
+    }
+</style>
+
+<script>
+(function() {
+    const toggles = document.querySelectorAll('.setting-toggle');
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', async function() {
+            const formData = new FormData();
+            formData.append('key', this.dataset.key);
+            formData.append('value', this.checked ? 'true' : 'false');
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            try {
+                const response = await fetch('{% url "ldp_core:settings_toggle" %}', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to save setting.');
+                }
+            } catch (err) {
+                this.checked = !this.checked;
+                alert('Could not update setting.');
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

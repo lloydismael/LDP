@@ -575,6 +575,7 @@
                 {% if user.role == 'ADMIN' or user.is_superuser %}
                 <li class="sidebar-nav-item mt-6 border-t border-blue-800 pt-4">
                     <span class="block py-2 px-6 text-xs uppercase text-gray-400 font-semibold tracking-wider">Admin</span>
+                    <a href="{% url 'ldp_core:settings' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-sliders-h mr-3"></i>Settings</a>
                     <a href="{% url 'ldp_core:change_management' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-tasks mr-3"></i>Change Management</a>
                     <a href="{% url 'admin:index' %}" class="sidebar-link py-3 px-6 text-white"><i class="fas fa-cogs mr-3"></i>Django Admin</a>
                 </li>
