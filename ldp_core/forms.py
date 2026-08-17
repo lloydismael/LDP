@@ -123,7 +123,7 @@ class UserProfileUpdateForm(forms.ModelForm):
         model = Person
         fields = [
             'first_name', 'last_name', 'email', 'profile_photo', 'banner',
-            'contact_number', 'address', 'bio',
+            'contact_number', 'address',
             'student_id', 'year_level', 'course_program',
             'section', 'scholarship_type', 'year_started', 'year_ended',
         ]
@@ -143,7 +143,6 @@ class UserProfileUpdateForm(forms.ModelForm):
             'email': self.cleaned_data.get('email', ''),
             'contact_number': self.cleaned_data['contact_number'],
             'address': self.cleaned_data['address'],
-            'bio': self.cleaned_data['bio'],
             'student_id': self.cleaned_data.get('student_id', ''),
             'year_level': self.cleaned_data.get('year_level', ''),
             'course_program': self.cleaned_data.get('course_program', ''),
@@ -157,7 +156,6 @@ class UserProfileUpdateForm(forms.ModelForm):
             db_person = Person.objects.get(pk=person.pk)
             person.contact_number = db_person.contact_number
             person.address = db_person.address
-            person.bio = db_person.bio
             person.student_id = db_person.student_id
             person.year_level = db_person.year_level
             person.course_program = db_person.course_program

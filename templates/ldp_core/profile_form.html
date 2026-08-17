@@ -180,12 +180,6 @@
               <textarea name="{{ form.address.html_name }}" id="{{ form.address.id_for_label }}" rows="2" class="form-input w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">{{ form.address.value|default:'' }}</textarea>
               {% if form.address.errors %}<p class="text-xs text-red-600 mt-1">{{ form.address.errors.0 }}</p>{% endif %}
             </div>
-            <!-- Bio -->
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-gray-600 mb-1" for="{{ form.bio.id_for_label }}">Short Bio</label>
-              <textarea name="{{ form.bio.html_name }}" id="{{ form.bio.id_for_label }}" rows="3" placeholder="Write a short description about yourself..." class="form-input w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">{{ form.bio.value|default:'' }}</textarea>
-              {% if form.bio.errors %}<p class="text-xs text-red-600 mt-1">{{ form.bio.errors.0 }}</p>{% endif %}
-            </div>
           </div>
         </div>
 

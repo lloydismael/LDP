@@ -11,7 +11,10 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='placeholder-secret-key')
 DEBUG = env('DEBUG')
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['*'])
+ALLOWED_HOSTS = env.list(
+    'DJANGO_ALLOWED_HOSTS',
+    default=['ldp.clouditechsolution.com', 'staging-ldp-hmf7epbkc9dkdgdw.southeastasia-01.azurewebsites.net']
+)
 
 # ── Reverse-proxy / Azure Web App settings ──────────────────────────────────
 # Trust X-Forwarded-Proto so Django sees requests as HTTPS
@@ -22,6 +25,10 @@ USE_X_FORWARDED_HOST = True
 # plus any *.azurewebsites.net host by default so the app works out of the box.
 _csrf_extra = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 CSRF_TRUSTED_ORIGINS = [
+    'https://ldp.clouditechsolution.com',
+    'http://ldp.clouditechsolution.com',
+    'https://staging-ldp-hmf7epbkc9dkdgdw.southeastasia-01.azurewebsites.net',
+    'http://staging-ldp-hmf7epbkc9dkdgdw.southeastasia-01.azurewebsites.net',
     'https://*.azurewebsites.net',
     'http://*.azurewebsites.net',
 ] + _csrf_extra
