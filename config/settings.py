@@ -13,7 +13,7 @@ SECRET_KEY = env('SECRET_KEY', default='placeholder-secret-key')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = env.list(
     'DJANGO_ALLOWED_HOSTS',
-    default=['ldp.clouditechsolution.com', 'staging-ldp-hmf7epbkc9dkdgdw.southeastasia-01.azurewebsites.net']
+    default=['localhost', '127.0.0.1', '[::1]', 'ldp.clouditechsolution.com', 'staging-ldp-hmf7epbkc9dkdgdw.southeastasia-01.azurewebsites.net']
 )
 
 # ── Reverse-proxy / Azure Web App settings ──────────────────────────────────
@@ -25,6 +25,8 @@ USE_X_FORWARDED_HOST = True
 # plus any *.azurewebsites.net host by default so the app works out of the box.
 _csrf_extra = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8001',
+    'http://127.0.0.1:8001',
     'https://ldp.clouditechsolution.com',
     'http://ldp.clouditechsolution.com',
     'https://staging-ldp-hmf7epbkc9dkdgdw.southeastasia-01.azurewebsites.net',
