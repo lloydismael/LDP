@@ -9,13 +9,14 @@ from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm,
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse, HttpResponseNotAllowed
 from django.conf import settings
 from django.contrib.auth import get_user_model
 import csv
 import io
 import json
+from datetime import date, timedelta
 
 from .services.imports import ImportValidationError, apply_job, create_job, workbook_bytes
 
@@ -28,34 +29,40 @@ admin_required = user_passes_test(_is_admin, login_url=reverse_lazy('ldp_core:da
 
 @login_required
 def dashboard(request):
-    import json
-    from datetime import date as _date
     user = request.user
     if user.is_superuser or user.role == 'ADMIN':
         schools_count = School.objects.filter(is_active=True).count()
         people_count = Person.objects.count()
         activities_count = Activity.objects.count()
-        cal_qs = Activity.objects.values('pk', 'name', 'date')
+        visible_activities = Activity.objects.all()
     elif hasattr(user, 'person') and user.person and user.person.school:
         schools_count = 1
         people_count = Person.objects.filter(school=user.person.school).count()
         activities_count = Activity.objects.filter(school=user.person.school).count()
-        cal_qs = Activity.objects.filter(school=user.person.school).values('pk', 'name', 'date')
+        visible_activities = Activity.objects.filter(
+            Q(school=user.person.school) | Q(participants=user.person)
+        ).distinct()
     else:
         schools_count = 0
         people_count = 0
         activities_count = 0
-        cal_qs = Activity.objects.values('pk', 'name', 'date')
+        visible_activities = Activity.objects.none()
 
-    cal_acts = [{'pk': a['pk'], 'name': a['name'], 'date': a['date'].isoformat()} for a in cal_qs]
+    today = date.today()
+    upcoming_activities = list(
+        visible_activities.filter(date__gte=today, date__lte=today + timedelta(days=90))
+        .select_related('school')
+        .annotate(participant_count=Count('participants', distinct=True))
+        .order_by('date', 'name')[:6]
+    )
 
     context = {
         'schools_count': schools_count,
         'people_count': people_count,
         'activities_count': activities_count,
         'pending_changes_count': Person.objects.filter(is_pending_approval=True).count() if (user.is_superuser or user.role == 'ADMIN') else 0,
-        'cal_activities': json.dumps(cal_acts),
-        'today': _date.today().isoformat(),
+        'upcoming_activities': upcoming_activities,
+        'today': today,
     }
     return render(request, 'ldp_core/dashboard.html', context)
 
@@ -171,7 +178,7 @@ class SchoolListView(LoginRequiredMixin, ListView):
     model = School
     template_name = 'ldp_core/school_list.html'
     context_object_name = 'schools'
-    paginate_by = 100
+    paginate_by = 50
 
     def get_queryset(self):
         user = self.request.user
@@ -207,7 +214,11 @@ class SchoolListView(LoginRequiredMixin, ListView):
         order_field = sort_map.get(sort, 'name')
         if direction == 'desc':
             order_field = f'-{order_field}'
-        return qs.order_by(order_field)
+        return (
+            qs.select_related('principal', 'principal__person')
+            .annotate(people_count=Count('people', distinct=True))
+            .order_by(order_field)
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -263,7 +274,7 @@ class PersonListView(LoginRequiredMixin, ListView):
     model = Person
     template_name = 'ldp_core/person_list.html'
     context_object_name = 'people'
-    paginate_by = 100
+    paginate_by = 50
 
     def get_queryset(self):
         user = self.request.user
@@ -290,7 +301,7 @@ class PersonListView(LoginRequiredMixin, ListView):
         order_field = sort_map.get(sort, 'user__last_name')
         if direction == 'desc':
             order_field = f'-{order_field}'
-        return qs.order_by(order_field)
+        return qs.annotate(activity_count=Count('activities', distinct=True)).order_by(order_field)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -365,7 +376,7 @@ class ActivityListView(LoginRequiredMixin, ListView):
     model = Activity
     template_name = 'ldp_core/activity_list.html'
     context_object_name = 'activities'
-    paginate_by = 100
+    paginate_by = 50
 
     def get_queryset(self):
         user = self.request.user
@@ -393,7 +404,11 @@ class ActivityListView(LoginRequiredMixin, ListView):
         order_field = sort_map.get(sort, 'date')
         if direction == 'desc':
             order_field = f'-{order_field}'
-        return qs.order_by(order_field)
+        return (
+            qs.select_related('school', 'school__principal', 'approved_by')
+            .annotate(participant_count=Count('participants', distinct=True))
+            .order_by(order_field)
+        )
 
     def get_context_data(self, **kwargs):
         from datetime import date
@@ -1154,7 +1169,7 @@ class AwardListView(LoginRequiredMixin, ListView):
     model = LeadershipAward
     template_name = 'ldp_core/award_list.html'
     context_object_name = 'awards'
-    paginate_by = 100
+    paginate_by = 50
 
     def get_queryset(self):
         user = self.request.user
