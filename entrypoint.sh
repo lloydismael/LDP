@@ -1,8 +1,9 @@
 #!/bin/sh
 set -e
 
-# Use Azure PostgreSQL by default if DATABASE_URL is not set externally
-DATABASE_URL="${DATABASE_URL:-postgresql://Admin123:%40Password123@grf-ldp.postgres.database.azure.com:5432/ldp}"
+# Never embed production credentials in an image. Local development falls back
+# to a persistent SQLite mount; Azure deployments must supply DATABASE_URL.
+DATABASE_URL="${DATABASE_URL:-sqlite:////app/data/db.sqlite3}"
 export DATABASE_URL
 
 echo "Running database migrations..."

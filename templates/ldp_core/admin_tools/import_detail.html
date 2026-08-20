@@ -1,0 +1,54 @@
+{% extends 'ldp_core/base_app.html' %}
+
+{% block page_title %}Import Preview{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <section class="glass-card border border-gray-100">
+        <div class="flex flex-wrap justify-between items-start gap-4">
+            <div>
+                <a href="{% url 'ldp_core:bulk_import_dashboard' %}" class="text-sm text-indigo-600 font-semibold"><i class="fas fa-arrow-left mr-1"></i>Import history</a>
+                <h3 class="text-2xl font-bold text-navy mt-3">{{ job.original_filename }}</h3>
+                <p class="text-xs text-gray-500 mt-1">SHA-256: <span class="font-mono break-all">{{ job.checksum }}</span></p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'ldp_core:bulk_import_report' job.pk %}" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold hover:bg-gray-50"><i class="fas fa-file-csv mr-2"></i>Download report</a>
+                {% if job.can_apply %}
+                <form method="post" action="{% url 'ldp_core:bulk_import_apply' job.pk %}" onsubmit="return confirm('Apply all reviewed changes? This action cannot be automatically undone.');">
+                    {% csrf_token %}
+                    <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold"><i class="fas fa-check mr-2"></i>Confirm and apply</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% if job.failure_message %}<div class="mt-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{{ job.failure_message }}</div>{% endif %}
+    </section>
+
+    <section class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="glass-card text-center"><p class="text-2xl font-bold">{{ job.total_rows }}</p><p class="text-xs text-gray-500">Total rows</p></div>
+        <div class="glass-card text-center bg-emerald-50"><p class="text-2xl font-bold text-emerald-700">{{ job.create_count }}</p><p class="text-xs text-gray-500">Create</p></div>
+        <div class="glass-card text-center bg-indigo-50"><p class="text-2xl font-bold text-indigo-700">{{ job.update_count }}</p><p class="text-xs text-gray-500">Update</p></div>
+        <div class="glass-card text-center bg-gray-50"><p class="text-2xl font-bold text-gray-700">{{ job.unchanged_count }}</p><p class="text-xs text-gray-500">Unchanged</p></div>
+        <div class="glass-card text-center bg-red-50"><p class="text-2xl font-bold text-red-700">{{ job.error_count }}</p><p class="text-xs text-gray-500">Errors</p></div>
+    </section>
+
+    <section class="glass-card border border-gray-100">
+        <form method="get" class="flex flex-wrap items-end gap-3 mb-5">
+            <div><label class="block text-xs font-bold text-gray-500 mb-1">Sheet</label><select name="sheet" class="rounded-lg border border-gray-300 px-3 py-2 text-sm"><option value="">All sheets</option>{% for sheet in sheets %}<option value="{{ sheet }}" {% if selected_sheet == sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}</select></div>
+            <div><label class="block text-xs font-bold text-gray-500 mb-1">Action</label><select name="action" class="rounded-lg border border-gray-300 px-3 py-2 text-sm"><option value="">All actions</option><option value="CREATE" {% if selected_action == 'CREATE' %}selected{% endif %}>Create</option><option value="UPDATE" {% if selected_action == 'UPDATE' %}selected{% endif %}>Update</option><option value="UNCHANGED" {% if selected_action == 'UNCHANGED' %}selected{% endif %}>Unchanged</option><option value="ERROR" {% if selected_action == 'ERROR' %}selected{% endif %}>Error</option></select></div>
+            <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold">Filter</button>
+        </form>
+        <p class="text-xs text-gray-500 mb-3">Showing up to 500 rows. Download the report for a complete portable result.</p>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500"><tr><th class="p-3">Sheet / row</th><th class="p-3">External key</th><th class="p-3">Action</th><th class="p-3">Errors or changes</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                {% for row in rows %}
+                    <tr class="align-top"><td class="p-3 whitespace-nowrap"><span class="font-semibold">{{ row.sheet_name }}</span><br><span class="text-xs text-gray-500">Row {{ row.row_number }}</span></td><td class="p-3 max-w-xs break-all font-mono text-xs">{{ row.external_key }}</td><td class="p-3"><span class="px-2 py-1 rounded-full text-xs font-semibold {% if row.action == 'CREATE' %}bg-emerald-100 text-emerald-700{% elif row.action == 'UPDATE' %}bg-indigo-100 text-indigo-700{% elif row.action == 'ERROR' %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">{{ row.get_action_display }}</span></td><td class="p-3 min-w-[24rem]">{% if row.errors %}<ul class="text-red-700 list-disc pl-5">{% for error in row.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% elif row.changes %}<pre class="text-xs whitespace-pre-wrap break-words bg-gray-50 rounded p-2">{{ row.changes }}</pre>{% else %}<span class="text-gray-400">No changes</span>{% endif %}</td></tr>
+                {% empty %}<tr><td colspan="4" class="p-8 text-center text-gray-500">No row results match this filter.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

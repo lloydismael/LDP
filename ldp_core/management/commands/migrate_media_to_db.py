@@ -96,7 +96,7 @@ class Command(BaseCommand):
                         field_file = field.attr_class(instance, field, None)
 
                         # Save through the db_file_storage backend; upload_to on
-                        # the field is 'ldp_core.filedata/content/mimetype/filename'
+                        # the field is 'ldp_core.filedata/content/filename/mimetype'
                         # so the backend knows where to persist the binary.
                         field_file.save(filename, content, save=False)
                         new_name = field_file.name

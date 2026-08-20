@@ -1,7 +1,24 @@
 import re
 from django import forms
 from django.db import transaction
+from django.conf import settings
 from .models import Person, User, Activity, School, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob
+
+
+class BulkImportUploadForm(forms.Form):
+    workbook = forms.FileField(
+        label='Excel workbook',
+        widget=forms.ClearableFileInput(attrs={'accept': '.xlsx'}),
+    )
+
+    def clean_workbook(self):
+        upload = self.cleaned_data['workbook']
+        if not upload.name.lower().endswith('.xlsx'):
+            raise forms.ValidationError('Select an Excel .xlsx workbook.')
+        max_bytes = getattr(settings, 'LDP_IMPORT_MAX_BYTES', 10 * 1024 * 1024)
+        if upload.size > max_bytes:
+            raise forms.ValidationError('Workbook exceeds the 10 MB upload limit.')
+        return upload
 
 
 class ProfessionalJobForm(forms.ModelForm):

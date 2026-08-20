@@ -107,7 +107,10 @@ LOGOUT_REDIRECT_URL = 'login'
 # All uploaded files (profile photos, logos, banners, certificates) are stored
 # as binary data directly in the PostgreSQL database via django-db-file-storage.
 # No Azure Blob Storage or file shares required — everything lives in one DB.
-DEFAULT_FILE_STORAGE = 'db_file_storage.storage.DatabaseFileStorage'
+DEFAULT_FILE_STORAGE = 'ldp_core.storage.PortableDatabaseFileStorage'
 MEDIA_URL = '/files/'
 MEDIA_ROOT = ''
+
+# Administrative workbook import limits.
+LDP_IMPORT_MAX_BYTES = env.int('LDP_IMPORT_MAX_BYTES', default=10 * 1024 * 1024)
 

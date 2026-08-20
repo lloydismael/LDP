@@ -273,3 +273,88 @@ class PersonTransferHistory(models.Model):
             f"{self.person} | {self.from_school} → {self.to_school} "
             f"({self.transfer_date})"
         )
+
+
+class ImportJob(models.Model):
+    """Tracks an administrator's workbook from preview through application."""
+
+    class Status(models.TextChoices):
+        VALIDATING = 'VALIDATING', 'Validating'
+        READY = 'READY', 'Ready to apply'
+        INVALID = 'INVALID', 'Validation failed'
+        APPLYING = 'APPLYING', 'Applying'
+        APPLIED = 'APPLIED', 'Applied'
+        FAILED = 'FAILED', 'Apply failed'
+
+    class Mode(models.TextChoices):
+        UPSERT = 'UPSERT', 'Create and update'
+
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='import_jobs'
+    )
+    original_filename = models.CharField(max_length=255)
+    checksum = models.CharField(max_length=64, db_index=True)
+    template_version = models.CharField(max_length=20, default='1.0')
+    mode = models.CharField(max_length=20, choices=Mode.choices, default=Mode.UPSERT)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.VALIDATING, db_index=True
+    )
+    workbook_data = models.BinaryField(editable=False)
+    total_rows = models.PositiveIntegerField(default=0)
+    create_count = models.PositiveIntegerField(default=0)
+    update_count = models.PositiveIntegerField(default=0)
+    unchanged_count = models.PositiveIntegerField(default=0)
+    error_count = models.PositiveIntegerField(default=0)
+    failure_message = models.TextField(blank=True)
+    previewed_at = models.DateTimeField(null=True, blank=True)
+    applied_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', '-created_at'], name='import_status_created_idx'),
+        ]
+
+    @property
+    def can_apply(self):
+        return self.status == self.Status.READY and self.error_count == 0
+
+    def __str__(self):
+        return f"Import #{self.pk}: {self.original_filename}"
+
+
+class ImportRowResult(models.Model):
+    """A complete row-level preview or apply outcome for an import job."""
+
+    class Action(models.TextChoices):
+        CREATE = 'CREATE', 'Create'
+        UPDATE = 'UPDATE', 'Update'
+        UNCHANGED = 'UNCHANGED', 'Unchanged'
+        ERROR = 'ERROR', 'Error'
+
+    job = models.ForeignKey(ImportJob, on_delete=models.CASCADE, related_name='row_results')
+    sheet_name = models.CharField(max_length=80)
+    row_number = models.PositiveIntegerField()
+    external_key = models.CharField(max_length=500, blank=True)
+    action = models.CharField(max_length=20, choices=Action.choices)
+    source_data = models.JSONField(default=dict)
+    changes = models.JSONField(default=dict, blank=True)
+    errors = models.JSONField(default=list, blank=True)
+    applied = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sheet_name', 'row_number']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['job', 'sheet_name', 'row_number'], name='unique_import_job_sheet_row'
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['job', 'action'], name='import_job_action_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.job_id}/{self.sheet_name}/{self.row_number}: {self.action}"

@@ -4,9 +4,13 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
+      - ldp_data:/app/data
     ports:
       - "8001:8000"
     environment:
       - DEBUG=1
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,[::1],ldp.clouditechsolution.com,*
-      - DATABASE_URL=sqlite:///db.sqlite3
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/db.sqlite3}
+
+volumes:
+  ldp_data:

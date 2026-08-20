@@ -1,21 +1,30 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import PasswordChangeView
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
-from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob
-from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm, PersonTransferForm, ProfessionalJobForm
+from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob, ImportJob
+from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm, PersonTransferForm, ProfessionalJobForm, BulkImportUploadForm
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseNotAllowed
 from django.conf import settings
 from django.contrib.auth import get_user_model
 import csv
 import io
 import json
+
+from .services.imports import ImportValidationError, apply_job, create_job, workbook_bytes
+
+
+def _is_admin(user):
+    return user.is_authenticated and (user.is_superuser or user.role == 'ADMIN')
+
+
+admin_required = user_passes_test(_is_admin, login_url=reverse_lazy('ldp_core:dashboard'))
 
 @login_required
 def dashboard(request):
@@ -53,7 +62,91 @@ def dashboard(request):
 
 class AdminRequiredMixin(UserPassesTestMixin):
     def test_func(self):
-        return self.request.user.is_superuser or self.request.user.role == 'ADMIN'
+        return _is_admin(self.request.user)
+
+
+@admin_required
+def bulk_import_dashboard(request):
+    if request.method == 'POST':
+        form = BulkImportUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            job = create_job(form.cleaned_data['workbook'], request.user)
+            if job.status == ImportJob.Status.READY:
+                messages.success(request, 'Workbook preview is ready. Review all changes before applying.')
+            else:
+                messages.error(request, 'Workbook validation found errors. Review the report below.')
+            return redirect('ldp_core:bulk_import_detail', pk=job.pk)
+    else:
+        form = BulkImportUploadForm()
+    jobs = ImportJob.objects.select_related('uploaded_by')[:50]
+    return render(request, 'ldp_core/admin_tools/import_dashboard.html', {'form': form, 'jobs': jobs})
+
+
+@admin_required
+def bulk_import_template(request):
+    response = HttpResponse(
+        workbook_bytes(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="ldp-bulk-import-template-v1.xlsx"'
+    return response
+
+
+@admin_required
+def bulk_import_detail(request, pk):
+    job = get_object_or_404(ImportJob.objects.select_related('uploaded_by'), pk=pk)
+    rows = job.row_results.all()
+    selected_sheet = request.GET.get('sheet', '').strip()
+    selected_action = request.GET.get('action', '').strip().upper()
+    if selected_sheet:
+        rows = rows.filter(sheet_name=selected_sheet)
+    if selected_action:
+        rows = rows.filter(action=selected_action)
+    context = {
+        'job': job,
+        'rows': rows[:500],
+        'sheets': job.row_results.values_list('sheet_name', flat=True).distinct(),
+        'selected_sheet': selected_sheet,
+        'selected_action': selected_action,
+    }
+    return render(request, 'ldp_core/admin_tools/import_detail.html', context)
+
+
+@admin_required
+def bulk_import_apply(request, pk):
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    job = get_object_or_404(ImportJob, pk=pk)
+    try:
+        apply_job(job)
+    except ImportValidationError as exc:
+        messages.error(request, str(exc))
+    except Exception as exc:
+        messages.error(request, f'Import failed and all domain changes were rolled back: {exc}')
+    else:
+        messages.success(request, 'Workbook applied successfully.')
+    return redirect('ldp_core:bulk_import_detail', pk=job.pk)
+
+
+@admin_required
+def bulk_import_error_report(request, pk):
+    job = get_object_or_404(ImportJob, pk=pk)
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="import-{job.pk}-report.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['sheet', 'row', 'external_key', 'action', 'errors', 'changes'])
+    for result in job.row_results.all():
+        writer.writerow([
+            result.sheet_name,
+            result.row_number,
+            result.external_key,
+            result.action,
+            ' | '.join(result.errors),
+            json.dumps(result.changes, ensure_ascii=False),
+        ])
+    if job.failure_message and not job.row_results.exists():
+        writer.writerow(['Workbook', '', '', 'ERROR', job.failure_message, ''])
+    return response
 
 
 class PrincipalOrAdminMixin(UserPassesTestMixin):
