@@ -29,6 +29,7 @@ urlpatterns = [
     path('change-management/<int:pk>/approve/', views.approve_profile_update, name='approve_profile'),
     path('change-management/<int:pk>/reject/', views.reject_profile_update, name='reject_profile'),
     path('activities/', views.ActivityListView.as_view(), name='activity_list'),
+    path('activities/search/', views.activity_live_search, name='activity_live_search'),
     path('activities/create/', views.ActivityCreateView.as_view(), name='activity_create'),
     path('activities/<int:pk>/', views.ActivityDetailView.as_view(), name='activity_detail'),
     path('activities/<int:pk>/edit/', views.ActivityUpdateView.as_view(), name='activity_update'),

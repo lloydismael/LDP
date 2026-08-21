@@ -1,4 +1,5 @@
 {% extends 'ldp_core/base_app.html' %}
+{% load static %}
 {% block title %}Leadership Awardees{% endblock %}
 {% block page_title %}Leadership Awardees{% endblock %}
 {% block content %}
@@ -15,27 +16,22 @@
 </div>
 
 <!-- Search bar -->
-<form method="get" class="mb-4">
+<form method="get" action="{% url 'ldp_core:award_list' %}" id="award-live-search" class="activity-search" data-live-list data-results-target="award-results" role="search">
   <div class="flex items-center gap-2">
-    <div class="relative flex-1 max-w-sm">
-      <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
-      <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name, title, year, school…"
-             class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+    <div class="activity-search-field">
+      <span class="activity-search-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+      <input type="search" name="q" value="{{ search_query }}" placeholder="Search by name, title, year, school…" autocomplete="off"
+             class="activity-search-input" role="combobox" aria-label="Search awards" aria-autocomplete="list" aria-controls="award-suggestions" aria-expanded="false" data-live-list-input>
+      <button type="button" class="activity-search-clear{% if not search_query %} is-hidden{% endif %}" aria-label="Clear search" data-live-list-clear><i class="fas fa-times" aria-hidden="true"></i></button>
+      <div id="award-suggestions" class="activity-suggestions" role="listbox" hidden data-live-list-suggestions></div>
     </div>
-    {% if search_query %}
-    <a href="?" class="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 transition" title="Clear">
-      <i class="fas fa-times text-sm"></i>
-    </a>
-    {% endif %}
-    <button type="submit" class="h-10 px-4 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-indigo-700 transition shadow-sm">
-      <i class="fas fa-search mr-1.5"></i> Search
-    </button>
     <input type="hidden" name="sort" value="{{ current_sort }}">
     <input type="hidden" name="dir" value="{{ current_dir }}">
   </div>
+  <p class="activity-search-status" role="status" aria-live="polite" aria-atomic="true" data-live-list-status>{% if search_query %}Showing matching awards.{% else %}Type to narrow the awards list.{% endif %}</p>
 </form>
 
-<div class="glass-card overflow-hidden">
+<div id="award-results" class="glass-card overflow-hidden p-0" data-live-list-results data-live-list-count="{{ paginator.count }}" aria-busy="false">
   <div class="table-wrap">
     <table class="w-full text-left border-collapse">
       <thead>
@@ -50,7 +46,7 @@
       </thead>
       <tbody class="text-navy divide-y divide-gray-50">
         {% for award in awards %}
-        <tr class="group">
+        <tr class="group" data-suggestion-label="{{ award.award_title }}" data-suggestion-meta="{{ award.recipient.user.get_full_name|default:award.year_awarded }}">
           <!-- Recipient -->
           <td class="py-3 px-4">
             <a href="{% url 'ldp_core:person_detail' award.recipient.pk %}" class="flex items-center gap-3 group/rec">
@@ -107,6 +103,7 @@
               <button type="button"
                  onclick="openCertModal('{{ award.certificate.url }}', '{{ award.award_title|escapejs }} — {{ award.recipient.user.get_full_name|escapejs }}')"
                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-amber-400 hover:to-orange-500 transition"
+                 aria-label="View certificate for {{ award.recipient.user.get_full_name }}"
                  title="View Certificate">
                 <i class="fas fa-certificate text-sm"></i>
               </button>
@@ -114,11 +111,13 @@
               {% if can_manage %}
               <a href="{% url 'ldp_core:award_update' award.pk %}"
                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-blue-500 hover:to-cyan-500 transition"
+                 aria-label="Edit {{ award.award_title }}"
                  title="Edit">
                 <i class="fas fa-edit text-sm"></i>
               </a>
               <a href="{% url 'ldp_core:award_delete' award.pk %}"
                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-red-500 hover:to-rose-600 transition"
+                 aria-label="Delete {{ award.award_title }}"
                  title="Delete">
                 <i class="fas fa-trash-alt text-sm"></i>
               </a>
@@ -179,7 +178,7 @@
         <i class="fas fa-certificate text-amber-500"></i>
         <span id="cert-title" class="text-sm font-bold text-navy truncate"></span>
       </div>
-      <button onclick="closeCertModal()" class="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
+      <button type="button" onclick="closeCertModal()" aria-label="Close certificate preview" class="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -223,3 +222,5 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 {% endblock %}
+
+{% block extra_scripts %}<script src="{% static 'ldp_core/js/live-list.js' %}"></script>{% endblock %}

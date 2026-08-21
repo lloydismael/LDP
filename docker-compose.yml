@@ -1,12 +1,12 @@
 services:
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8001
     volumes:
       - .:/app
       - ldp_data:/app/data
     ports:
-      - "8001:8000"
+      - "8001:8001"
     environment:
       - DEBUG=1
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,[::1],ldp.clouditechsolution.com,*

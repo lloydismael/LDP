@@ -8,11 +8,11 @@
     </p>
 
     {% if user.role == "ADMIN" or user.is_superuser %}
-        <a href="{% url 'admin:index' %}" class="btn" style="margin-bottom: 1rem; background-color: #047857;">Go to Admin Control Panel</a>
+        <a href="{% url 'admin:index' %}" class="btn btn-success" style="margin-bottom: 1rem;">Go to Admin Control Panel</a>
     {% endif %}
 
     <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
-        <button type="submit" class="btn" style="background-color: #6b7280; margin-bottom: 1rem;">Log Out</button>
+        <button type="submit" class="btn btn-secondary" style="margin-bottom: 1rem;">Log Out</button>
     </form>
 {% endblock %}

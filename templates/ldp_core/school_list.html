@@ -1,4 +1,5 @@
 {% extends 'ldp_core/base_app.html' %}
+{% load static %}
 
 {% block page_title %}Schools{% endblock %}
 {% block page_title_dup %}Schools{% endblock %}
@@ -28,27 +29,22 @@
 </div>
 
 <!-- Search bar -->
-<form method="get" class="mb-4">
+<form method="get" action="{% url 'ldp_core:school_list' %}" id="school-live-search" class="activity-search" data-live-list data-results-target="school-results" role="search">
     <div class="flex items-center gap-2">
-        <div class="relative flex-1 max-w-sm">
-            <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
-            <input type="text" name="q" value="{{ search_query }}" placeholder="Search schools, location, region…"
-                   class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+        <div class="activity-search-field">
+            <span class="activity-search-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+            <input type="search" name="q" value="{{ search_query }}" placeholder="Search schools, location, region…" autocomplete="off"
+                   class="activity-search-input" role="combobox" aria-label="Search schools" aria-autocomplete="list" aria-controls="school-suggestions" aria-expanded="false" data-live-list-input>
+            <button type="button" class="activity-search-clear{% if not search_query %} is-hidden{% endif %}" aria-label="Clear search" data-live-list-clear><i class="fas fa-times" aria-hidden="true"></i></button>
+            <div id="school-suggestions" class="activity-suggestions" role="listbox" hidden data-live-list-suggestions></div>
         </div>
-        {% if search_query %}
-        <a href="?" class="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 transition" title="Clear">
-            <i class="fas fa-times text-sm"></i>
-        </a>
-        {% endif %}
-        <button type="submit" class="h-10 px-4 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-indigo-700 transition shadow-sm">
-            <i class="fas fa-search mr-1.5"></i> Search
-        </button>
         <input type="hidden" name="sort" value="{{ current_sort }}">
         <input type="hidden" name="dir" value="{{ current_dir }}">
     </div>
+    <p class="activity-search-status" role="status" aria-live="polite" aria-atomic="true" data-live-list-status>{% if search_query %}Showing matching schools.{% else %}Type to narrow the schools list.{% endif %}</p>
 </form>
 
-<div class="glass-card overflow-hidden">
+<div id="school-results" class="glass-card overflow-hidden p-0" data-live-list-results data-live-list-count="{{ paginator.count }}" aria-busy="false">
     <div class="table-wrap">
         <table class="w-full text-left border-collapse">
             <thead>
@@ -64,7 +60,7 @@
             </thead>
             <tbody class="text-navy divide-y divide-gray-50">
                 {% for school in schools %}
-                <tr class="group">
+                <tr class="group" data-suggestion-label="{{ school.name }}" data-suggestion-meta="{{ school.location|default:school.region }}">
                     <td class="py-3 px-4">
                         <div class="relative rounded-xl overflow-hidden min-w-[200px]">
                             {% if school.banner %}
@@ -158,20 +154,20 @@
                     <td class="py-4 px-4 text-right">
                         <div class="flex justify-end gap-1">
                             <!-- View -->
-                            <a href="{% url 'ldp_core:school_detail' school.pk %}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-slate-500 hover:to-slate-600 shadow-sm hover:shadow transition-all duration-300">
+                            <a href="{% url 'ldp_core:school_detail' school.pk %}" aria-label="View {{ school.name }}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-slate-500 hover:to-slate-600 shadow-sm hover:shadow transition-all duration-300">
                                 <i class="fas fa-eye"></i>
                                 <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">View</span>
                             </a>
                             <!-- Edit (admin OR principal of this school) -->
                             {% if user.role == 'ADMIN' or user.is_superuser or school.principal == user %}
-                            <a href="{% url 'ldp_core:school_update' school.pk %}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-blue-500 hover:to-cyan-500 shadow-sm hover:shadow transition-all duration-300">
+                            <a href="{% url 'ldp_core:school_update' school.pk %}" aria-label="Edit {{ school.name }}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-blue-500 hover:to-cyan-500 shadow-sm hover:shadow transition-all duration-300">
                                 <i class="fas fa-edit"></i>
                                 <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">Edit</span>
                             </a>
                             {% endif %}
                             <!-- Delete (admin only) -->
                             {% if user.role == 'ADMIN' or user.is_superuser %}
-                            <a href="{% url 'ldp_core:school_delete' school.pk %}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-red-500 hover:to-rose-600 shadow-sm hover:shadow transition-all duration-300">
+                            <a href="{% url 'ldp_core:school_delete' school.pk %}" aria-label="Delete {{ school.name }}" class="action-btn relative h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-red-500 hover:to-rose-600 shadow-sm hover:shadow transition-all duration-300">
                                 <i class="fas fa-trash-alt"></i>
                                 <span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">Delete</span>
                             </a>
@@ -227,3 +223,5 @@ function sortTable(field) {
 }
 </script>
 {% endblock %}
+
+{% block extra_scripts %}<script src="{% static 'ldp_core/js/live-list.js' %}"></script>{% endblock %}

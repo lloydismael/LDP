@@ -1,0 +1,61 @@
+<div class="glass-card overflow-hidden p-0" data-activity-results-card data-live-list-count="{{ paginator.count }}">
+    <div class="table-wrap">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-gray-100 text-sm font-semibold text-secondary pb-2">
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase" aria-sort="{% if current_sort == 'name' %}{% if current_dir == 'asc' %}ascending{% else %}descending{% endif %}{% else %}none{% endif %}"><a href="?sort=name&dir={% if current_sort == 'name' and current_dir == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="activity-sort" data-live-sort="name">Event Details <span class="text-[10px] {% if current_sort == 'name' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'name' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></a></th>
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase" aria-sort="{% if current_sort == 'date' %}{% if current_dir == 'asc' %}ascending{% else %}descending{% endif %}{% else %}none{% endif %}"><a href="?sort=date&dir={% if current_sort == 'date' and current_dir == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="activity-sort" data-live-sort="date">Date <span class="text-[10px] {% if current_sort == 'date' %}text-primary{% else %}opacity-25{% endif %}">{% if current_sort == 'date' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span></a></th>
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase">Participants</th>
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase">Status</th>
+                    <th class="py-4 px-4 font-bold text-secondary tracking-wider uppercase text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-navy divide-y divide-gray-50">
+                {% for a in activities %}
+                <tr class="group" data-suggestion-label="{{ a.name }}" data-suggestion-meta="{{ a.school.name|default:'Global Event' }}">
+                    <td class="py-4 px-4">
+                        <div class="flex items-center gap-3">
+                            <div class="activity-thumbnail">
+                                {% if a.banner %}<img src="{{ a.banner.url }}" class="h-full w-full object-cover" alt="{{ a.name }}">{% else %}<i class="fas fa-calendar-alt text-primary"></i>{% endif %}
+                            </div>
+                            <div>
+                                <a href="{% url 'ldp_core:activity_detail' a.pk %}" class="font-bold hover:text-primary transition">{{ a.name }}</a>
+                                <div class="text-xs text-secondary font-medium">{{ a.school.name|default:"Global Event" }}</div>
+                                {% if a.approved_by %}<div class="text-xs text-slate-400 mt-0.5">Created by {{ a.approved_by.get_full_name|default:a.approved_by.username }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 font-semibold text-sm">{{ a.date }}</td>
+                    <td class="py-4 px-4"><span class="activity-participant-count"><i class="fas fa-users" aria-hidden="true"></i> {{ a.participant_count }}</span></td>
+                    <td class="py-4 px-4 whitespace-nowrap">
+                        {% if a.date > today %}<span class="activity-status activity-status--upcoming"><i class="fas fa-hourglass-start" aria-hidden="true"></i> Upcoming</span>
+                        {% elif a.date == today %}<span class="activity-status activity-status--ongoing"><span class="activity-status-dot"></span> Ongoing</span>
+                        {% else %}<span class="activity-status activity-status--completed"><i class="fas fa-check-double" aria-hidden="true"></i> Completed</span>{% endif %}
+                    </td>
+                    <td class="py-4 px-4 text-right">
+                        <div class="flex justify-end gap-1 transition-opacity">
+                            <a href="{% url 'ldp_core:activity_detail' a.pk %}" class="action-btn activity-row-action activity-row-action--view" aria-label="View {{ a.name }}"><i class="fas fa-eye"></i><span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">View</span></a>
+                            {% if user.role == 'ADMIN' or user.is_superuser or user.role == 'PRINCIPAL' and a.school and a.school.principal == user %}
+                            <a href="{% url 'ldp_core:activity_update' a.pk %}" class="action-btn activity-row-action activity-row-action--edit" aria-label="Modify {{ a.name }}"><i class="fas fa-edit"></i><span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">Modify</span></a>
+                            <a href="{% url 'ldp_core:activity_delete' a.pk %}" class="action-btn activity-row-action activity-row-action--delete" aria-label="Delete {{ a.name }}"><i class="fas fa-trash-alt"></i><span class="action-tooltip absolute bottom-full left-1/2 mb-2 bg-navy text-white text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap z-50">Delete</span></a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="py-12 px-6 text-center"><div class="flex flex-col items-center justify-center"><div class="p-4 rounded-full bg-lightbg text-secondary mb-3"><i class="fas fa-folder-open text-2xl"></i></div><span class="text-secondary font-bold text-sm">No activity records found.</span></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if is_paginated %}
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+        <p class="text-sm text-gray-500">Showing <span class="font-semibold text-gray-700">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span> of <span class="font-semibold text-gray-700">{{ paginator.count }}</span> activities</p>
+        <div class="flex items-center gap-1">
+            {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort|urlencode }}&dir={{ current_dir|urlencode }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" data-live-page class="page-btn h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium"><i class="fas fa-chevron-left mr-1 text-xs"></i> Prev</a>{% endif %}
+            {% for num in paginator.page_range %}{% if num == page_obj.number %}<span class="h-8 w-8 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-bold shadow-sm">{{ num }}</span>{% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}<a href="?page={{ num }}&sort={{ current_sort|urlencode }}&dir={{ current_dir|urlencode }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="h-8 w-8 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition text-sm">{{ num }}</a>{% endif %}{% endfor %}
+            {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort|urlencode }}&dir={{ current_dir|urlencode }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" data-live-page class="page-btn h-8 px-3 inline-flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-200 transition font-medium">Next <i class="fas fa-chevron-right ml-1 text-xs"></i></a>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>

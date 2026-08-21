@@ -20,9 +20,9 @@
     <form method="post" class="mt-4">
         {% csrf_token %}
         <div class="flex justify-end pt-4 border-t border-gray-200 mt-6">
-            <a href="javascript:history.back()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded transition">
+            <button type="button" onclick="history.back()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded transition">
                 Cancel
-            </a>
+            </button>
             <button type="submit" class="ml-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded transition shadow-md">
                 Confirm Deletion
             </button>

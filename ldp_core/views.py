@@ -3,7 +3,9 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import PasswordChangeView
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.core.paginator import Paginator
+from django.template.loader import render_to_string
 from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob, ImportJob
 from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm, PersonTransferForm, ProfessionalJobForm, BulkImportUploadForm
 from django.shortcuts import get_object_or_404
@@ -11,6 +13,7 @@ from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse, HttpResponseNotAllowed
+from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.contrib.auth import get_user_model
 import csv
@@ -332,6 +335,27 @@ class PersonCreateView(LoginRequiredMixin, PrincipalOrAdminMixin, CreateView):
     template_name = 'ldp_core/person_form.html'
     success_url = reverse_lazy('ldp_core:person_list')
 
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if (
+            user.is_authenticated
+            and user.role == 'PRINCIPAL'
+            and not user.is_superuser
+            and (not hasattr(user, 'person') or user.person.school_id is None)
+        ):
+            raise PermissionDenied('A school assignment is required to add participants.')
+        return super().dispatch(request, *args, **kwargs)
+
+    def test_func(self):
+        user = self.request.user
+        if user.is_superuser or user.role == 'ADMIN':
+            return True
+        return (
+            user.role == 'PRINCIPAL'
+            and hasattr(user, 'person')
+            and user.person.school_id is not None
+        )
+
     def _get_principal_school(self):
         user = self.request.user
         if user.role == 'PRINCIPAL' and not user.is_superuser and hasattr(user, 'person') and user.person.school:
@@ -344,6 +368,16 @@ class PersonCreateView(LoginRequiredMixin, PrincipalOrAdminMixin, CreateView):
         if school:
             kwargs['principal_school'] = school
         return kwargs
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        username = self.object.user.username
+        messages.success(
+            self.request,
+            f'Participant created successfully. Their username is {username}. '
+            'Share the temporary password securely; they must change it at first login.',
+        )
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -372,6 +406,62 @@ class PersonDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
             user.delete()  # Manually clean up User object.
         return response
 
+ACTIVITY_SORT_FIELDS = {
+    'name': 'name',
+    'date': 'date',
+    'school': 'school__name',
+    'approval': 'is_approved',
+}
+
+
+def visible_activities_for(user):
+    """Return only activities the user is authorized to view."""
+    if user.is_superuser or user.role == 'ADMIN':
+        return Activity.objects.all()
+    if not hasattr(user, 'person'):
+        return Activity.objects.none()
+
+    visibility = Q(participants=user.person)
+    if user.person.school:
+        visibility |= Q(school=user.person.school)
+    return Activity.objects.filter(visibility).distinct()
+
+
+def activity_search_queryset(user, query='', sort='date', direction='desc'):
+    queryset = visible_activities_for(user)
+    query = query.strip()
+    if query:
+        queryset = queryset.filter(
+            Q(name__icontains=query)
+            | Q(school__name__icontains=query)
+            | Q(description__icontains=query)
+        )
+
+    order_field = ACTIVITY_SORT_FIELDS.get(sort, 'date')
+    if direction == 'desc':
+        order_field = f'-{order_field}'
+    return (
+        queryset.select_related('school', 'school__principal', 'approved_by')
+        .annotate(participant_count=Count('participants', distinct=True))
+        .order_by(order_field, 'pk')
+    )
+
+
+def activity_list_context(queryset, query, sort, direction, page_number):
+    paginator = Paginator(queryset, 50)
+    page_obj = paginator.get_page(page_number)
+    return {
+        'activities': page_obj.object_list,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'is_paginated': page_obj.has_other_pages(),
+        'today': date.today(),
+        'search_query': query,
+        'current_sort': sort,
+        'current_dir': direction,
+    }
+
+
 class ActivityListView(LoginRequiredMixin, ListView):
     model = Activity
     template_name = 'ldp_core/activity_list.html'
@@ -379,45 +469,57 @@ class ActivityListView(LoginRequiredMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        user = self.request.user
-        if user.is_superuser or user.role == 'ADMIN':
-            qs = Activity.objects.all()
-        else:
-            q_filter = Q()
-            if hasattr(user, 'person'):
-                if user.person.school:
-                    q_filter |= Q(school=user.person.school)
-                q_filter |= Q(participants=user.person)
-            if q_filter:
-                qs = Activity.objects.filter(q_filter).distinct()
-            else:
-                return Activity.objects.none()
-        search = self.request.GET.get('q', '').strip()
-        if search:
-            qs = qs.filter(
-                Q(name__icontains=search) | Q(school__name__icontains=search) |
-                Q(description__icontains=search)
-            )
         sort = self.request.GET.get('sort', 'date')
         direction = self.request.GET.get('dir', 'desc')
-        sort_map = {'name': 'name', 'date': 'date', 'school': 'school__name', 'approval': 'is_approved'}
-        order_field = sort_map.get(sort, 'date')
-        if direction == 'desc':
-            order_field = f'-{order_field}'
-        return (
-            qs.select_related('school', 'school__principal', 'approved_by')
-            .annotate(participant_count=Count('participants', distinct=True))
-            .order_by(order_field)
+        return activity_search_queryset(
+            self.request.user,
+            self.request.GET.get('q', ''),
+            sort,
+            direction,
         )
 
     def get_context_data(self, **kwargs):
-        from datetime import date
         ctx = super().get_context_data(**kwargs)
         ctx['today'] = date.today()
-        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['search_query'] = self.request.GET.get('q', '').strip()
         ctx['current_sort'] = self.request.GET.get('sort', 'date')
         ctx['current_dir'] = self.request.GET.get('dir', 'desc')
         return ctx
+
+
+@login_required
+def activity_live_search(request):
+    query = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'date')
+    direction = request.GET.get('dir', 'desc')
+    queryset = activity_search_queryset(request.user, query, sort, direction)
+    context = activity_list_context(
+        queryset,
+        query,
+        sort,
+        direction,
+        request.GET.get('page', 1),
+    )
+
+    suggestions = []
+    if len(query) >= 2:
+        for activity in queryset[:8]:
+            suggestions.append({
+                'label': activity.name,
+                'school': activity.school.name if activity.school else 'Global Event',
+                'url': reverse('ldp_core:activity_detail', args=[activity.pk]),
+            })
+
+    return JsonResponse({
+        'html': render_to_string(
+            'ldp_core/partials/activity_results.html',
+            context,
+            request=request,
+        ),
+        'suggestions': suggestions,
+        'count': context['paginator'].count,
+        'query': query,
+    })
 
 
 class ActivityEditMixin(UserPassesTestMixin):
@@ -1175,12 +1277,8 @@ class AwardListView(LoginRequiredMixin, ListView):
         user = self.request.user
         qs = LeadershipAward.objects.select_related('recipient__user', 'school')
         if not (user.is_superuser or getattr(user, 'role', None) == 'ADMIN'):
-            try:
-                school = user.person.school
-                if school:
-                    qs = qs.filter(school=school)
-            except Exception:
-                pass
+            school = user.person.school if hasattr(user, 'person') else None
+            qs = qs.filter(school=school) if school else LeadershipAward.objects.none()
         search = self.request.GET.get('q', '').strip()
         if search:
             qs = qs.filter(

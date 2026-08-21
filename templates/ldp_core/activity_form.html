@@ -1,4 +1,5 @@
 {% extends 'ldp_core/base_app.html' %}
+{% load static %}
 
 {% block page_title %}{% if form.instance.pk %}Edit Activity{% else %}Create Activity{% endif %}{% endblock %}
 {% block page_title_dup %}{% if form.instance.pk %}Edit Activity{% else %}New Activity{% endif %}{% endblock %}
@@ -195,14 +196,29 @@
                 {% if form.participants.field.queryset.count > 0 %}
                 <div class="border border-slate-200 rounded-xl overflow-hidden">
                     <!-- Search box -->
-                    <div class="border-b border-slate-100 px-3 py-2 bg-slate-50">
-                        <input type="text" id="participantSearch" placeholder="Search participants..."
-                            class="w-full text-sm bg-transparent placeholder-slate-400 text-navy focus:outline-none" oninput="filterParticipants(this.value)">
+                    <div class="participant-autocomplete border-b border-slate-100 px-3 py-2 bg-slate-50" data-local-multiselect>
+                        <div class="participant-search-field">
+                            <i class="fas fa-search participant-search-icon" aria-hidden="true"></i>
+                            <input type="search" id="participantSearch" placeholder="Search by name, username, or type..."
+                                class="participant-search-input" autocomplete="off" role="combobox"
+                                aria-autocomplete="list" aria-controls="participantSuggestions" aria-expanded="false"
+                                data-local-multiselect-input>
+                            <button type="button" class="participant-search-clear is-hidden" aria-label="Clear participant search" data-local-multiselect-clear>
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div id="participantSuggestions" class="activity-suggestions participant-suggestions" role="listbox"
+                            aria-label="Matching participants" aria-multiselectable="true" hidden data-local-multiselect-list></div>
+                        <span class="participant-search-status" role="status" aria-live="polite" aria-atomic="true" data-local-multiselect-status></span>
                     </div>
                     <!-- Participant checkboxes -->
                     <div id="participantList" class="divide-y divide-slate-100 max-h-64 overflow-y-auto">
                         {% for person in form.participants.field.queryset %}
-                        <label class="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50/50 cursor-pointer transition participant-row">
+                        <label class="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50/50 cursor-pointer transition participant-row"
+                            data-participant-id="{{ person.pk }}"
+                            data-participant-name="{{ person.user.get_full_name|default:person.user.username }}"
+                            data-participant-meta="{{ person.get_type_display }} · @{{ person.user.username }}"
+                            data-search-text="{{ person.user.get_full_name }} {{ person.user.username }} {{ person.get_type_display }}">
                             <input type="checkbox"
                                 name="{{ form.participants.html_name }}"
                                 value="{{ person.pk }}"
@@ -223,7 +239,7 @@
                         {% endfor %}
                     </div>
                     <!-- Select all / none -->
-                    <div class="border-t border-slate-100 px-4 py-2 bg-slate-50 flex items-center gap-4">
+                    <div class="participant-bulk-actions border-t border-slate-100 px-4 py-2 bg-slate-50 flex items-center gap-4">
                         <button type="button" onclick="selectAllParticipants(true)" class="text-xs font-semibold text-primary hover:text-indigo-800 transition">Select All</button>
                         <span class="text-slate-300">|</span>
                         <button type="button" onclick="selectAllParticipants(false)" class="text-xs font-semibold text-slate-500 hover:text-navy transition">Clear</button>
@@ -301,21 +317,12 @@ function clearActivityBanner() {
     document.getElementById('activity-banner-wrapper').innerHTML = '<div class="flex flex-col items-center gap-1 text-slate-300"><i class="fas fa-panorama text-4xl"></i><span class="text-xs font-medium">No banner uploaded</span></div>';
 }
 
-// Participant search
-function filterParticipants(query) {
-    const rows = document.querySelectorAll('.participant-row');
-    query = query.toLowerCase();
-    rows.forEach(row => {
-        const name = row.querySelector('.participant-name')?.textContent.toLowerCase() || '';
-        row.style.display = name.includes(query) ? '' : 'none';
-    });
-}
-
 // Select all / none
 function selectAllParticipants(checked) {
     document.querySelectorAll('#participantList input[type="checkbox"]').forEach(cb => {
-        if (cb.closest('.participant-row').style.display !== 'none') {
+        if (!cb.closest('.participant-row').hidden) {
             cb.checked = checked;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
         }
     });
     updateParticipantCount();
@@ -336,3 +343,5 @@ document.querySelectorAll('#participantList input[type="checkbox"]').forEach(cb 
 updateParticipantCount();
 </script>
 {% endblock %}
+
+{% block extra_scripts %}<script src="{% static 'ldp_core/js/local-combobox.js' %}"></script>{% endblock %}

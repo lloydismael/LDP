@@ -260,8 +260,28 @@ class SchoolForm(forms.ModelForm):
             self.fields['principal'].help_text = "Save the school first, then assign a Principal."
 
 class PersonCreateForm(forms.ModelForm):
-    first_name = forms.CharField(max_length=150, required=True)
-    last_name = forms.CharField(max_length=150, required=True)
+    first_name = forms.CharField(
+        max_length=150,
+        required=True,
+        label='First name',
+        help_text='Enter the participant’s given name exactly as it should appear in records.',
+        error_messages={'required': 'Enter the participant’s first name.'},
+        widget=forms.TextInput(attrs={
+            'autocomplete': 'given-name',
+            'placeholder': 'e.g., Juan',
+        }),
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        required=True,
+        label='Last name',
+        help_text='Enter the participant’s family name. It is also used to generate the username.',
+        error_messages={'required': 'Enter the participant’s last name.'},
+        widget=forms.TextInput(attrs={
+            'autocomplete': 'family-name',
+            'placeholder': 'e.g., dela Cruz',
+        }),
+    )
 
     class Meta:
         model = Person
@@ -270,6 +290,12 @@ class PersonCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.principal_school = kwargs.pop('principal_school', None)
         super().__init__(*args, **kwargs)
+        self.fields['type'].label = 'Participant type'
+        self.fields['type'].help_text = 'Choose the category that best describes the participant. This determines their account access.'
+        self.fields['school'].label = 'School'
+        self.fields['school'].help_text = 'Select the school where this participant is currently enrolled or assigned.'
+        self.fields['school'].queryset = School.objects.filter(is_active=True).order_by('name')
+        self.fields['school'].empty_label = 'Select a school'
         if self.principal_school:
             allowed = [Person.Type.STUDENT, Person.Type.SCHOLAR, Person.Type.COLLEGE, Person.Type.PROFESSIONAL]
             self.fields['type'].choices = [(t.value, t.label) for t in allowed]
@@ -278,13 +304,25 @@ class PersonCreateForm(forms.ModelForm):
             self.fields['school'].empty_label = None
             self.fields['school'].disabled = True
 
+    def clean_first_name(self):
+        first_name = self.cleaned_data['first_name'].strip()
+        if not first_name:
+            raise forms.ValidationError('Enter the participant’s first name.')
+        return first_name
+
+    def clean_last_name(self):
+        last_name = self.cleaned_data['last_name'].strip()
+        if not last_name:
+            raise forms.ValidationError('Enter the participant’s last name.')
+        return last_name
+
     def save(self, commit=True):
         person = super().save(commit=False)
         # If school is disabled (principal use), restore from principal_school
         if self.principal_school and not person.school_id:
             person.school = self.principal_school
-        first_name = self.cleaned_data['first_name'].strip()
-        last_name = self.cleaned_data['last_name'].strip()
+        first_name = self.cleaned_data['first_name']
+        last_name = self.cleaned_data['last_name']
         
         # Generate username: Firstname + First capital letter of their Surname
         base_username = f"{first_name}{last_name[0].upper()}".replace(" ", "")

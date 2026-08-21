@@ -216,9 +216,9 @@ docker-compose exec web python manage.py seed_data
 
 | URL | Description |
 |-----|-------------|
-| `http://localhost:8000/` | Main portal |
-| `http://localhost:8000/dashboard/` | App dashboard |
-| `http://localhost:8000/admin/` | Django admin panel |
+| `http://localhost:8001/` | Main portal |
+| `http://localhost:8001/dashboard/` | App dashboard |
+| `http://localhost:8001/admin/` | Django admin panel |
 
 ---
 

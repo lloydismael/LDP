@@ -2,6 +2,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('ldp-theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leadership Development Program (LDP)</title>
@@ -72,6 +80,14 @@
         .btn:hover {
             background-color: #1d4ed8;
         }
+        .btn:focus-visible {
+            outline: 3px solid rgba(59, 130, 246, 0.35);
+            outline-offset: 3px;
+        }
+        .btn-success { background-color: #047857; }
+        .btn-success:hover { background-color: #065f46; }
+        .btn-secondary { background-color: #4b5563; }
+        .btn-secondary:hover { background-color: #374151; }
         .alert {
             padding: 0.75rem;
             margin-bottom: 1rem;
@@ -98,6 +114,17 @@
         .admin-link:hover {
             text-decoration: underline;
         }
+        .alert-warning { background-color: #fffbeb; color: #92400e; }
+        .help-text { color: #6b7280; font-size: .75rem; }
+        .error-text { color: #b91c1c; font-size: .75rem; }
+        html.dark body { background-color: #0f141e; color: #f4f6fb; }
+        html.dark .card { background-color: #191f2c; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+        html.dark h1, html.dark h2 { color: #f4f6fb; }
+        html.dark .welcome-text, html.dark .form-group label { color: #d5dbea; }
+        html.dark .form-group input { border-color: #475569; background: #202736; color: #f4f6fb; }
+        html.dark .help-text { color: #aeb8cb; }
+        html.dark .error-text { color: #fda4af; }
+        html.dark .alert-warning { border: 1px solid rgba(245,185,95,.4); background: rgba(180,83,9,.2); color: #fde68a; }
         
     </style>
 </head>

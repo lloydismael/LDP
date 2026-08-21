@@ -16,7 +16,7 @@
                 {% if job.can_apply %}
                 <form method="post" action="{% url 'ldp_core:bulk_import_apply' job.pk %}" onsubmit="return confirm('Apply all reviewed changes? This action cannot be automatically undone.');">
                     {% csrf_token %}
-                    <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold"><i class="fas fa-check mr-2"></i>Confirm and apply</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold"><i class="fas fa-check mr-2"></i>Confirm and apply</button>
                 </form>
                 {% endif %}
             </div>
@@ -36,7 +36,7 @@
         <form method="get" class="flex flex-wrap items-end gap-3 mb-5">
             <div><label class="block text-xs font-bold text-gray-500 mb-1">Sheet</label><select name="sheet" class="rounded-lg border border-gray-300 px-3 py-2 text-sm"><option value="">All sheets</option>{% for sheet in sheets %}<option value="{{ sheet }}" {% if selected_sheet == sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}</select></div>
             <div><label class="block text-xs font-bold text-gray-500 mb-1">Action</label><select name="action" class="rounded-lg border border-gray-300 px-3 py-2 text-sm"><option value="">All actions</option><option value="CREATE" {% if selected_action == 'CREATE' %}selected{% endif %}>Create</option><option value="UPDATE" {% if selected_action == 'UPDATE' %}selected{% endif %}>Update</option><option value="UNCHANGED" {% if selected_action == 'UNCHANGED' %}selected{% endif %}>Unchanged</option><option value="ERROR" {% if selected_action == 'ERROR' %}selected{% endif %}>Error</option></select></div>
-            <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold">Filter</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">Filter</button>
         </form>
         <p class="text-xs text-gray-500 mb-3">Showing up to 500 rows. Download the report for a complete portable result.</p>
         <div class="overflow-x-auto">

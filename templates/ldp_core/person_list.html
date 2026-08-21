@@ -1,4 +1,5 @@
 {% extends 'ldp_core/base_app.html' %}
+{% load static %}
 
 {% block page_title %}Users{% endblock %}
 
@@ -19,26 +20,30 @@
   </div>
 
   <!-- Search bar -->
-  <form method="get" id="people-filter-form" class="mb-4">
+  <form method="get" action="{% url 'ldp_core:person_list' %}" id="people-filter-form" class="activity-search" data-live-list data-results-target="people-results" role="search">
     <div class="flex flex-wrap items-center gap-2">
-      <div class="relative flex-1 min-w-[180px] max-w-sm">
-        <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
-        <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name, username, type…"
-               class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+      <div class="activity-search-field">
+        <span class="activity-search-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+        <input type="search" name="q" value="{{ search_query }}" placeholder="Search by name, username, type…" autocomplete="off"
+               class="activity-search-input" role="combobox" aria-label="Search people" aria-autocomplete="list" aria-controls="people-suggestions" aria-expanded="false" data-live-list-input>
+        <button type="button" class="activity-search-clear{% if not search_query %} is-hidden{% endif %}" aria-label="Clear search" data-live-list-clear><i class="fas fa-times" aria-hidden="true"></i></button>
+        <div id="people-suggestions" class="activity-suggestions" role="listbox" hidden data-live-list-suggestions></div>
       </div>
       {% if school_options %}
       <!-- Searchable school filter -->
-      <div class="relative min-w-[200px] max-w-xs" id="school-filter-wrap">
+        <div class="relative min-w-[200px] max-w-xs" id="school-filter-wrap" data-local-combobox data-source="school-filter-data">
         <i class="fas fa-school absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none z-10"></i>
         <input type="text" id="school-filter-search" autocomplete="off"
                placeholder="Filter by school…"
+             role="combobox" aria-controls="school-filter-dropdown" aria-expanded="false" aria-autocomplete="list" data-local-combobox-input
                class="w-full pl-10 pr-8 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
-        <input type="hidden" name="school" id="school-filter-value" value="{{ school_filter }}">
-        <ul id="school-filter-dropdown"
-            class="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden text-sm">
+        <input type="hidden" name="school" id="school-filter-value" value="{{ school_filter }}" data-local-combobox-value>
+        <ul id="school-filter-dropdown" role="listbox" data-local-combobox-list hidden
+          class="activity-suggestions max-h-56 overflow-y-auto text-sm">
         </ul>
         {% if school_filter %}
         <button type="button" id="school-filter-clear"
+          data-local-combobox-clear
                 class="absolute inset-y-0 right-2.5 flex items-center text-gray-400 hover:text-gray-600 transition">
           <i class="fas fa-times text-xs"></i>
         </button>
@@ -53,16 +58,14 @@
         <i class="fas fa-times text-sm"></i>
       </a>
       {% endif %}
-      <button type="submit" class="h-10 px-4 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-indigo-700 transition shadow-sm">
-        <i class="fas fa-search mr-1.5"></i> Search
-      </button>
       <input type="hidden" name="sort" value="{{ current_sort }}">
       <input type="hidden" name="dir" value="{{ current_dir }}">
     </div>
+    <p class="activity-search-status" role="status" aria-live="polite" aria-atomic="true" data-live-list-status>{% if search_query %}Showing matching users.{% else %}Type to narrow the users list.{% endif %}</p>
   </form>
 
   <!-- Table Card -->
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  <div id="people-results" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" data-live-list-results data-live-list-count="{{ paginator.count }}" aria-busy="false">
     <div class="table-wrap">
       <table class="min-w-full divide-y divide-gray-100">
         <thead class="bg-gray-50">
@@ -76,7 +79,7 @@
         </thead>
         <tbody class="divide-y divide-gray-100 bg-white">
           {% for p in people %}
-          <tr class="group">
+          <tr class="group" data-suggestion-label="{{ p.user.get_full_name|default:p.user.username }}" data-suggestion-meta="{{ p.school.name|default:p.get_type_display }}">
 
             <!-- User column -->
             <td class="px-5 py-4">
@@ -224,74 +227,10 @@ function sortTable(field) {
     window.location = url.toString();
 }
 
-// School filter combobox
-(function () {
-    const dataEl = document.getElementById('school-filter-data');
-    if (!dataEl) return;
-    const schools = JSON.parse(dataEl.textContent);
-    const searchInput = document.getElementById('school-filter-search');
-    const valueInput  = document.getElementById('school-filter-value');
-    const dropdown    = document.getElementById('school-filter-dropdown');
-    const clearBtn    = document.getElementById('school-filter-clear');
-
-    // Pre-fill display from current value
-    const initialVal = valueInput.value;
-    if (initialVal) {
-        const match = schools.find(s => String(s.v) === String(initialVal));
-        if (match) searchInput.value = match.l;
-    }
-
-    function renderList(items) {
-        dropdown.innerHTML = '';
-        if (!items.length) {
-            const li = document.createElement('li');
-            li.className = 'px-4 py-2.5 text-slate-400 italic text-xs';
-            li.textContent = 'No schools found.';
-            dropdown.appendChild(li);
-        } else {
-            items.forEach(s => {
-                const li = document.createElement('li');
-                li.className = 'px-4 py-2.5 cursor-pointer hover:bg-indigo-50 hover:text-primary transition-colors truncate';
-                li.textContent = s.l;
-                li.dataset.value = s.v;
-                li.addEventListener('mousedown', function (e) {
-                    e.preventDefault();
-                    searchInput.value = s.l;
-                    valueInput.value  = s.v;
-                    dropdown.classList.add('hidden');
-                    document.getElementById('people-filter-form').submit();
-                });
-                dropdown.appendChild(li);
-            });
-        }
-        dropdown.classList.remove('hidden');
-    }
-
-    searchInput.addEventListener('input', function () {
-        const q = this.value.trim().toLowerCase();
-        valueInput.value = '';
-        if (!q) { dropdown.classList.add('hidden'); return; }
-        renderList(schools.filter(s => s.l.toLowerCase().includes(q)));
-    });
-
-    searchInput.addEventListener('focus', function () {
-        const q = this.value.trim().toLowerCase();
-        if (q) renderList(schools.filter(s => s.l.toLowerCase().includes(q)));
-        else renderList(schools.slice(0, 10));
-    });
-
-    searchInput.addEventListener('blur', function () {
-        setTimeout(() => dropdown.classList.add('hidden'), 150);
-        if (!valueInput.value) searchInput.value = '';
-    });
-
-    if (clearBtn) {
-        clearBtn.addEventListener('click', function () {
-            searchInput.value = '';
-            valueInput.value = '';
-            document.getElementById('people-filter-form').submit();
-        });
-    }
-})();
+document.getElementById('school-filter-wrap')?.addEventListener('local-combobox-change', function () {
+  document.getElementById('people-filter-form').requestSubmit();
+});
 </script>
 {% endblock %}
+
+{% block extra_scripts %}<script src="{% static 'ldp_core/js/live-list.js' %}"></script><script src="{% static 'ldp_core/js/local-combobox.js' %}"></script>{% endblock %}

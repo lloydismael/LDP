@@ -13,4 +13,4 @@ echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
 echo "Starting gunicorn..."
-exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 --worker-class sync config.wsgi:application
+exec gunicorn --bind 0.0.0.0:8001 --workers 3 --timeout 120 --worker-class sync config.wsgi:application
