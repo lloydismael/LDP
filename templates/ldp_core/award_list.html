@@ -9,8 +9,8 @@
     <p class="text-sm text-gray-500 mt-1">Recognition of outstanding leadership among scholars, students, and professionals</p>
   </div>
   {% if can_manage %}
-  <a href="{% url 'ldp_core:award_create' %}" class="inline-flex items-center gap-2 bg-primary hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 px-5 rounded-xl shadow-sm transition">
-    <i class="fas fa-plus"></i> Record Award
+  <a href="{% url 'ldp_core:award_create' %}" class="ui-button ui-button--primary">
+    <i class="fas fa-plus" aria-hidden="true"></i> Record Award
   </a>
   {% endif %}
 </div>
@@ -98,28 +98,25 @@
           </td>
           <!-- Actions -->
           <td class="py-3 px-4 text-right">
-            <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="flex justify-end gap-1 group-hover:opacity-100 transition-opacity">
               {% if award.certificate %}
               <button type="button"
                  onclick="openCertModal('{{ award.certificate.url }}', '{{ award.award_title|escapejs }} — {{ award.recipient.user.get_full_name|escapejs }}')"
-                 class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-amber-400 hover:to-orange-500 transition"
-                 aria-label="View certificate for {{ award.recipient.user.get_full_name }}"
-                 title="View Certificate">
-                <i class="fas fa-certificate text-sm"></i>
+                 class="ui-icon-button"
+                 aria-label="View certificate for {{ award.recipient.user.get_full_name }}">
+                <i class="fas fa-certificate text-sm" aria-hidden="true"></i><span class="action-tooltip" role="tooltip">View certificate</span>
               </button>
               {% endif %}
               {% if can_manage %}
               <a href="{% url 'ldp_core:award_update' award.pk %}"
-                 class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-blue-500 hover:to-cyan-500 transition"
-                 aria-label="Edit {{ award.award_title }}"
-                 title="Edit">
-                <i class="fas fa-edit text-sm"></i>
+                 class="ui-icon-button"
+                 aria-label="Edit {{ award.award_title }}">
+                <i class="fas fa-edit text-sm" aria-hidden="true"></i><span class="action-tooltip" role="tooltip">Edit award</span>
               </a>
               <a href="{% url 'ldp_core:award_delete' award.pk %}"
-                 class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-gradient-to-br hover:from-red-500 hover:to-rose-600 transition"
-                 aria-label="Delete {{ award.award_title }}"
-                 title="Delete">
-                <i class="fas fa-trash-alt text-sm"></i>
+                 class="ui-icon-button ui-icon-button--danger"
+                 aria-label="Delete {{ award.award_title }}">
+                <i class="fas fa-trash-alt text-sm" aria-hidden="true"></i><span class="action-tooltip" role="tooltip">Delete award</span>
               </a>
               {% endif %}
             </div>

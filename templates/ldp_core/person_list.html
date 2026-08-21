@@ -13,8 +13,8 @@
       <p class="text-sm text-gray-500 mt-0.5">All registered participants, scholars, and principals.</p>
     </div>
     {% if user.role == 'ADMIN' or user.is_superuser or user.role == 'PRINCIPAL' %}
-    <a href="{% url 'ldp_core:person_create' %}" class="inline-flex items-center gap-2 bg-primary hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 px-5 rounded-xl shadow-sm transition">
-      <i class="fas fa-user-plus"></i> Add User
+    <a href="{% url 'ldp_core:person_create' %}" class="ui-button ui-button--primary">
+      <i class="fas fa-user-plus" aria-hidden="true"></i> Add User
     </a>
     {% endif %}
   </div>
@@ -44,8 +44,9 @@
         {% if school_filter %}
         <button type="button" id="school-filter-clear"
           data-local-combobox-clear
-                class="absolute inset-y-0 right-2.5 flex items-center text-gray-400 hover:text-gray-600 transition">
-          <i class="fas fa-times text-xs"></i>
+            aria-label="Clear school filter"
+              class="absolute inset-y-0 right-2.5 flex items-center text-gray-400 hover:text-gray-600 transition">
+            <i class="fas fa-times text-xs" aria-hidden="true"></i>
         </button>
         {% endif %}
       </div>
@@ -54,8 +55,8 @@
       ]</script>
       {% endif %}
       {% if search_query or school_filter %}
-      <a href="?" class="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 transition" title="Clear all filters">
-        <i class="fas fa-times text-sm"></i>
+      <a href="?" class="ui-icon-button" aria-label="Clear all filters">
+        <i class="fas fa-times text-sm" aria-hidden="true"></i><span class="action-tooltip" role="tooltip">Clear all filters</span>
       </a>
       {% endif %}
       <input type="hidden" name="sort" value="{{ current_sort }}">
@@ -147,33 +148,33 @@
 
             <!-- Actions -->
             <td class="px-5 py-4 whitespace-nowrap text-right">
-              <div class="inline-flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+              <div class="inline-flex items-center gap-1 group-hover:opacity-100 transition-opacity">
                 <!-- View -->
                 <a href="{% url 'ldp_core:person_detail' p.pk %}"
-                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:text-primary hover:bg-indigo-50 transition"
-                  title="View Profile">
-                  <i class="fas fa-eye text-sm"></i>
+                  class="ui-icon-button"
+                  aria-label="View {{ p.user.get_full_name|default:p.user.username }} profile">
+                  <i class="fas fa-eye text-sm" aria-hidden="true"></i><span class="action-tooltip" role="tooltip">View profile</span>
                 </a>
                 {% if user.role == 'ADMIN' or user.is_superuser %}
                 <!-- Edit -->
                 <a href="{% url 'ldp_core:person_update' p.pk %}"
-                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition"
-                  title="Edit Profile">
-                  <i class="fas fa-edit text-sm"></i>
+                  class="ui-icon-button"
+                  aria-label="Edit {{ p.user.get_full_name|default:p.user.username }} profile">
+                  <i class="fas fa-edit text-sm" aria-hidden="true"></i><span class="action-tooltip" role="tooltip">Edit profile</span>
                 </a>
                 <!-- Approve pending -->
                 {% if p.is_pending_approval %}
                 <a href="{% url 'ldp_core:approve_profile' p.pk %}"
-                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 transition"
-                  title="Approve Pending Changes">
-                  <i class="fas fa-check-circle text-sm"></i>
+                  class="ui-icon-button"
+                  aria-label="Approve pending changes for {{ p.user.get_full_name|default:p.user.username }}">
+                  <i class="fas fa-check-circle text-sm" aria-hidden="true"></i><span class="action-tooltip" role="tooltip">Approve changes</span>
                 </a>
                 {% endif %}
                 <!-- Delete -->
                 <a href="{% url 'ldp_core:person_delete' p.pk %}"
-                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
-                  title="Delete User">
-                  <i class="fas fa-trash text-sm"></i>
+                  class="ui-icon-button ui-icon-button--danger"
+                  aria-label="Delete {{ p.user.get_full_name|default:p.user.username }}">
+                  <i class="fas fa-trash text-sm" aria-hidden="true"></i><span class="action-tooltip" role="tooltip">Delete user</span>
                 </a>
                 {% endif %}
               </div>
