@@ -7,7 +7,7 @@ from django.urls import reverse, reverse_lazy
 from django.core.paginator import Paginator
 from django.template.loader import render_to_string
 from .models import School, Person, Activity, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob, ImportJob
-from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm, PersonTransferForm, ProfessionalJobForm, BulkImportUploadForm
+from .forms import PersonCreateForm, PersonUpdateForm, ActivityForm, SchoolForm, UserProfileUpdateForm, LeadershipAwardForm, SchoolPrincipalHistoryForm, PersonTransferForm, ProfessionalJobForm, BulkImportUploadForm, LegacyMigrationForm, SystemSettingsForm, configured_import_limit_mb
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.contrib import messages
@@ -22,6 +22,7 @@ import json
 from datetime import date, timedelta
 
 from .services.imports import ImportValidationError, apply_job, create_job, workbook_bytes
+from .services.system_settings import get_system_settings, operation_enabled
 
 
 def _is_admin(user):
@@ -77,7 +78,11 @@ class AdminRequiredMixin(UserPassesTestMixin):
 
 @admin_required
 def bulk_import_dashboard(request):
+    configuration = get_system_settings()
     if request.method == 'POST':
+        if not operation_enabled('import', configuration=configuration):
+            messages.error(request, 'Data imports are disabled in System Settings.')
+            return redirect('ldp_core:bulk_import_dashboard')
         form = BulkImportUploadForm(request.POST, request.FILES)
         if form.is_valid():
             job = create_job(form.cleaned_data['workbook'], request.user)
@@ -89,11 +94,30 @@ def bulk_import_dashboard(request):
     else:
         form = BulkImportUploadForm()
     jobs = ImportJob.objects.select_related('uploaded_by')[:50]
-    return render(request, 'ldp_core/admin_tools/import_dashboard.html', {'form': form, 'jobs': jobs})
+    return render(request, 'ldp_core/admin_tools/import_dashboard.html', {
+        'form': form,
+        'jobs': jobs,
+        'configuration': configuration,
+        'migration_form': LegacyMigrationForm(initial={
+            'migration_mode': 'preview',
+            'conflict_strategy': 'upsert',
+            'entities': [choice[0] for choice in LegacyMigrationForm.ENTITIES],
+            'field_mapping': json.dumps(MIGRATION_DEFAULT_MAPPING, indent=2),
+        }),
+        'migration_report': request.session.get('migration_report'),
+        'max_import_mb': configured_import_limit_mb(),
+        'school_count': School.objects.count(),
+        'user_count': get_user_model().objects.count(),
+        'activity_count': Activity.objects.count(),
+        'award_count': LeadershipAward.objects.count(),
+    })
 
 
 @admin_required
 def bulk_import_template(request):
+    if not operation_enabled('import'):
+        messages.error(request, 'Data imports are disabled in System Settings.')
+        return redirect('ldp_core:bulk_import_dashboard')
     response = HttpResponse(
         workbook_bytes(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -105,6 +129,7 @@ def bulk_import_template(request):
 @admin_required
 def bulk_import_detail(request, pk):
     job = get_object_or_404(ImportJob.objects.select_related('uploaded_by'), pk=pk)
+    configuration = get_system_settings()
     rows = job.row_results.all()
     selected_sheet = request.GET.get('sheet', '').strip()
     selected_action = request.GET.get('action', '').strip().upper()
@@ -118,6 +143,7 @@ def bulk_import_detail(request, pk):
         'sheets': job.row_results.values_list('sheet_name', flat=True).distinct(),
         'selected_sheet': selected_sheet,
         'selected_action': selected_action,
+        'configuration': configuration,
     }
     return render(request, 'ldp_core/admin_tools/import_detail.html', context)
 
@@ -126,6 +152,9 @@ def bulk_import_detail(request, pk):
 def bulk_import_apply(request, pk):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
+    if not operation_enabled('import'):
+        messages.error(request, 'Data imports are disabled in System Settings.')
+        return redirect('ldp_core:bulk_import_detail', pk=pk)
     job = get_object_or_404(ImportJob, pk=pk)
     try:
         apply_job(job)
@@ -677,12 +706,47 @@ class ActivityDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
                 return True
         return False
 
+def _profile_field_changes(person):
+    field_labels = {
+        'first_name': 'First name',
+        'last_name': 'Last name',
+        'email': 'Email address',
+        'contact_number': 'Contact number',
+        'address': 'Address',
+        'bio': 'Bio',
+        'student_id': 'Student / Scholar ID',
+        'year_level': 'Year level / Grade',
+        'course_program': 'Course / Program',
+        'section': 'Section / Batch',
+        'scholarship_type': 'Scholarship type / Award',
+        'year_started': 'Year started',
+        'year_ended': 'Year ended / Graduated',
+    }
+    user_fields = {'first_name', 'last_name', 'email'}
+    changes = person.pending_changes if isinstance(person.pending_changes, dict) else {}
+    changed_fields = []
+    for field, label in field_labels.items():
+        if field not in changes:
+            continue
+        current = getattr(person.user, field, '') if field in user_fields and person.user else getattr(person, field, '')
+        requested = changes.get(field)
+        if (current or '') != (requested or ''):
+            changed_fields.append({
+                'label': label,
+                'current': current or '—',
+                'requested': requested or '—',
+            })
+    return changed_fields
+
+
 @login_required
 def change_management(request):
     if not (request.user.is_superuser or request.user.role == 'ADMIN'):
         messages.error(request, "Access denied.")
         return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
-    pending = Person.objects.filter(is_pending_approval=True).select_related('user', 'school')
+    pending = list(Person.objects.filter(is_pending_approval=True).select_related('user', 'school'))
+    for person in pending:
+        person.changed_fields = _profile_field_changes(person)
     return render(request, 'ldp_core/change_management.html', {'pending': pending})
 
 
@@ -968,275 +1032,116 @@ def _apply_or_preview_legacy_migration(payload, selected_entities, custom_mappin
     return report
 
 
-@login_required
+@admin_required
 def legacy_migration(request):
-    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
-        messages.error(request, "Access denied.")
-        return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
     if request.method != 'POST':
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-    upload = request.FILES.get('migration_file')
-    if not upload:
-        messages.error(request, 'Please choose a legacy JSON file to migrate.')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-    try:
-        payload = json.loads(upload.read().decode('utf-8'))
-    except Exception as exc:
-        messages.error(request, f'Invalid migration JSON file: {exc}')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-    selected_entities = [entity for entity in (request.POST.getlist('entities') or ['schools', 'users', 'people', 'activities', 'awards']) if entity in {'schools', 'users', 'people', 'activities', 'awards'}]
-    conflict_strategy = request.POST.get('conflict_strategy') or 'upsert'
-    if conflict_strategy not in {'upsert', 'create_only', 'update_only'}:
-        conflict_strategy = 'upsert'
-    try:
-        custom_mapping = json.loads(request.POST.get('field_mapping') or '{}')
-        if not isinstance(custom_mapping, dict):
-            raise ValueError('Field mapping must be a JSON object.')
-    except Exception as exc:
-        messages.error(request, f'Invalid custom field mapping: {exc}')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-    preview = request.POST.get('migration_mode') != 'apply'
+        return HttpResponseNotAllowed(['POST'])
+    if not operation_enabled('import'):
+        messages.error(request, 'Data imports are disabled in System Settings.')
+        return redirect('ldp_core:bulk_import_dashboard')
+    form = LegacyMigrationForm(request.POST, request.FILES)
+    if not form.is_valid():
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+        return redirect('ldp_core:bulk_import_dashboard')
+    payload = form.payload
+    selected_entities = form.cleaned_data['entities']
+    disabled_entities = [
+        entity for entity in selected_entities
+        if not operation_enabled('import', entity)
+    ]
+    if disabled_entities:
+        messages.error(
+            request,
+            f"Enable these modules in System Settings before migration: {', '.join(disabled_entities)}.",
+        )
+        return redirect('ldp_core:bulk_import_dashboard')
+    conflict_strategy = form.cleaned_data['conflict_strategy']
+    custom_mapping = form.cleaned_data['field_mapping']
+    preview = form.cleaned_data['migration_mode'] == 'preview'
     try:
         report = _apply_or_preview_legacy_migration(payload, selected_entities, custom_mapping, conflict_strategy, preview=preview)
-    except Exception as exc:
-        messages.error(request, f'Migration failed: {exc}')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+    except Exception:
+        messages.error(request, 'Migration could not be completed. No partial changes were saved.')
+        return redirect('ldp_core:bulk_import_dashboard')
     request.session['migration_report'] = report
     request.session.modified = True
     if preview:
         messages.info(request, f"Migration preview complete: {report['compatible_rows']} compatible row(s), {report['created']} create candidate(s), {report['updated']} update candidate(s), {report['skipped']} skipped.")
     else:
         messages.success(request, f"Migration applied: {report['created']} created, {report['updated']} updated, {report['skipped']} skipped.")
-    return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+    return redirect('ldp_core:bulk_import_dashboard')
 
 
-@login_required
+@admin_required
 def settings_page(request):
-    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
-        messages.error(request, "Access denied.")
-        return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
-
-    feature_flags = request.session.get('feature_flags', {
-        'allow_import': True,
-        'allow_export': True,
-        'school_sync_enabled': True,
-        'user_sync_enabled': True,
-        'activity_sync_enabled': True,
-        'award_sync_enabled': True,
-    })
+    configuration = get_system_settings()
+    if request.method == 'POST':
+        form = SystemSettingsForm(request.POST, instance=configuration)
+        if form.is_valid():
+            configuration = form.save(commit=False)
+            configuration.updated_by = request.user
+            configuration.save()
+            messages.success(request, 'System settings updated for all administrators.')
+            return redirect('ldp_core:settings')
+    else:
+        form = SystemSettingsForm(instance=configuration)
 
     context = {
-        'feature_flags': feature_flags,
+        'form': form,
+        'configuration': configuration,
         'school_count': School.objects.count(),
         'user_count': get_user_model().objects.count(),
         'activity_count': Activity.objects.count(),
         'award_count': LeadershipAward.objects.count(),
-        'migration_report': request.session.get('migration_report'),
-        'migration_default_mapping': json.dumps(MIGRATION_DEFAULT_MAPPING, indent=2),
     }
     return render(request, 'ldp_core/settings.html', context)
 
 
-@login_required
-def settings_toggle(request):
-    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
-        return JsonResponse({'ok': False, 'message': 'Access denied.'}, status=403)
-
-    if request.method != 'POST':
-        return JsonResponse({'ok': False, 'message': 'Invalid request method.'}, status=405)
-
-    key = request.POST.get('key')
-    value = request.POST.get('value') == 'true'
-    allowed = {
-        'allow_import',
-        'allow_export',
-        'school_sync_enabled',
-        'user_sync_enabled',
-        'activity_sync_enabled',
-        'award_sync_enabled',
-    }
-
-    if key not in allowed:
-        return JsonResponse({'ok': False, 'message': 'Invalid setting key.'}, status=400)
-
-    flags = request.session.get('feature_flags', {
-        'allow_import': True,
-        'allow_export': True,
-        'school_sync_enabled': True,
-        'user_sync_enabled': True,
-        'activity_sync_enabled': True,
-        'award_sync_enabled': True,
-    })
-    flags[key] = value
-    request.session['feature_flags'] = flags
-    request.session.modified = True
-
-    return JsonResponse({'ok': True, 'key': key, 'value': value})
-
-
-@login_required
+@admin_required
 def export_data(request, data_type):
-    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
-        messages.error(request, "Access denied.")
-        return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
-
-    flags = request.session.get('feature_flags', {'allow_export': True})
-    if not flags.get('allow_export', True):
-        messages.error(request, 'Export is currently disabled in settings.')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-
     data_type = data_type.lower()
+    if not operation_enabled('export', data_type):
+        messages.error(request, f'{data_type.title()} export is disabled in System Settings.')
+        return redirect('ldp_core:bulk_import_dashboard')
     if data_type == 'schools':
-        rows = list(School.objects.values('id', 'name', 'school_id', 'school_type', 'location', 'district', 'division', 'province', 'region', 'email', 'phone', 'is_active'))
+        rows = list(School.objects.values('name', 'school_id', 'school_type', 'category', 'address', 'location', 'district', 'division', 'province', 'region', 'email', 'phone', 'website', 'founded_year', 'is_active'))
     elif data_type == 'users':
         User = get_user_model()
-        rows = list(User.objects.values('id', 'username', 'first_name', 'last_name', 'email', 'role', 'is_active'))
+        rows = list(User.objects.values('username', 'first_name', 'last_name', 'email', 'role', 'is_active'))
     elif data_type == 'activities':
-        rows = list(Activity.objects.values('id', 'name', 'date', 'description', 'school_id', 'is_approved', 'approved_by_id'))
+        rows = list(Activity.objects.values('name', 'date', 'description', 'school__school_id', 'is_approved', 'approved_by__username'))
     elif data_type == 'awards':
-        if not flags.get('award_sync_enabled', True):
-            messages.error(request, 'Leadership awardees export is disabled in settings.')
-            return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
         rows = list(
             LeadershipAward.objects.values(
-                'id',
-                'recipient_id',
+                'recipient__user__username',
                 'award_title',
                 'award_level',
                 'year_awarded',
                 'awarding_body',
                 'description',
-                'school_id',
+                'school__school_id',
             )
         )
     else:
         messages.error(request, 'Unsupported export type.')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+        return redirect('ldp_core:bulk_import_dashboard')
 
-    response = HttpResponse(content_type='application/json')
-    response['Content-Disposition'] = f'attachment; filename="{data_type}.json"'
-    response.write(json.dumps(rows, default=str, indent=2))
+    payload = {'schema': 'ldp-data-interchange', 'version': 1, 'entity': data_type, 'records': rows}
+    response = HttpResponse(content_type='application/json; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="ldp-{data_type}-v1.json"'
+    response.write(json.dumps(payload, default=str, indent=2))
     return response
 
 
-@login_required
+@admin_required
 def import_data(request, data_type):
-    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
-        messages.error(request, "Access denied.")
-        return HttpResponseRedirect(reverse_lazy('ldp_core:dashboard'))
-
-    flags = request.session.get('feature_flags', {'allow_import': True})
-    if not flags.get('allow_import', True):
-        messages.error(request, 'Import is currently disabled in settings.')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-
-    if request.method != 'POST':
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-
-    upload = request.FILES.get('import_file')
-    if not upload:
-        messages.error(request, 'Please choose a JSON file to import.')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-
-    try:
-        payload = json.loads(upload.read().decode('utf-8'))
-        if not isinstance(payload, list):
-            raise ValueError('Payload must be a list.')
-    except Exception as exc:
-        messages.error(request, f'Invalid JSON file: {exc}')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-
-    data_type = data_type.lower()
-    imported = 0
-
-    if data_type == 'schools':
-        for row in payload:
-            name = (row.get('name') or '').strip()
-            if not name:
-                continue
-            School.objects.update_or_create(
-                name=name,
-                defaults={
-                    'school_id': row.get('school_id', ''),
-                    'school_type': row.get('school_type', ''),
-                    'location': row.get('location', 'Philippines') or 'Philippines',
-                    'district': row.get('district', ''),
-                    'division': row.get('division', ''),
-                    'province': row.get('province', ''),
-                    'region': row.get('region', ''),
-                    'email': row.get('email', ''),
-                    'phone': row.get('phone', ''),
-                    'is_active': bool(row.get('is_active', True)),
-                }
-            )
-            imported += 1
-    elif data_type == 'users':
-        User = get_user_model()
-        for row in payload:
-            username = (row.get('username') or '').strip()
-            if not username:
-                continue
-            defaults = {
-                'first_name': row.get('first_name', ''),
-                'last_name': row.get('last_name', ''),
-                'email': row.get('email', ''),
-                'role': row.get('role', User.Role.VIEWER),
-                'is_active': bool(row.get('is_active', True)),
-            }
-            user, created = User.objects.get_or_create(username=username, defaults=defaults)
-            if not created:
-                for k, v in defaults.items():
-                    setattr(user, k, v)
-                user.save()
-            imported += 1
-    elif data_type == 'activities':
-        for row in payload:
-            name = (row.get('name') or '').strip()
-            if not name:
-                continue
-            Activity.objects.update_or_create(
-                name=name,
-                date=row.get('date'),
-                defaults={
-                    'description': row.get('description', ''),
-                    'school_id': row.get('school_id'),
-                    'is_approved': bool(row.get('is_approved', False)),
-                    'approved_by_id': row.get('approved_by_id'),
-                }
-            )
-            imported += 1
-    elif data_type == 'awards':
-        if not flags.get('award_sync_enabled', True):
-            messages.error(request, 'Leadership awardees import is disabled in settings.')
-            return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-        for row in payload:
-            recipient_id = row.get('recipient_id')
-            award_title = (row.get('award_title') or '').strip()
-            year_awarded = (row.get('year_awarded') or '').strip()
-            if not recipient_id or not award_title or not year_awarded:
-                continue
-
-            if not Person.objects.filter(pk=recipient_id).exists():
-                continue
-
-            LeadershipAward.objects.update_or_create(
-                recipient_id=recipient_id,
-                award_title=award_title,
-                year_awarded=year_awarded,
-                defaults={
-                    'award_level': row.get('award_level') or LeadershipAward.AwardLevel.SCHOOL,
-                    'awarding_body': row.get('awarding_body', ''),
-                    'description': row.get('description', ''),
-                    'school_id': row.get('school_id'),
-                }
-            )
-            imported += 1
-    else:
-        messages.error(request, 'Unsupported import type.')
-        return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
-
-    messages.success(request, f'Successfully imported {imported} {data_type} record(s).')
-    return HttpResponseRedirect(reverse_lazy('ldp_core:settings'))
+    messages.info(
+        request,
+        'Direct JSON imports were retired. Use the validated Excel workflow or Advanced legacy migration.',
+    )
+    return redirect('ldp_core:bulk_import_dashboard')
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):

@@ -1,6 +1,7 @@
 {% extends 'ldp_core/base_app.html' %}
 
 {% block page_title %}Change Management{% endblock %}
+{% block header_title %}Change Management{% endblock %}
 
 {% block content %}
 <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
@@ -57,7 +58,7 @@
         </div>
 
         <!-- Change Details Table -->
-        {% if person.pending_changes %}
+        {% if person.changed_fields %}
         <div class="rounded-xl border border-gray-100 overflow-hidden mb-5">
             <table class="min-w-full divide-y divide-gray-100 text-sm">
                 <thead class="bg-gray-50">
@@ -72,62 +73,22 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-50">
-                    {% if person.pending_changes.first_name %}
-                    <tr class="{% if person.pending_changes.first_name != person.user.first_name %}bg-blue-50/30{% endif %}">
-                        <td class="px-4 py-3 font-semibold text-gray-600">First Name</td>
-                        <td class="px-4 py-3 text-gray-500">{{ person.user.first_name|default:"—" }}</td>
-                        <td class="px-4 py-3 font-medium {% if person.pending_changes.first_name != person.user.first_name %}text-blue-700{% else %}text-gray-700{% endif %}">
-                            {{ person.pending_changes.first_name }}
-                            {% if person.pending_changes.first_name != person.user.first_name %}
+                    {% for change in person.changed_fields %}
+                    <tr class="bg-blue-50/40">
+                        <td class="px-4 py-3 font-semibold text-gray-700 align-top">{{ change.label }}</td>
+                        <td class="px-4 py-3 text-gray-500 align-top whitespace-pre-wrap break-words">{{ change.current }}</td>
+                        <td class="px-4 py-3 font-semibold text-blue-700 align-top whitespace-pre-wrap break-words">
+                            {{ change.requested }}
                             <span class="ml-2 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold uppercase">Changed</span>
-                            {% endif %}
                         </td>
                     </tr>
-                    {% endif %}
-                    {% if person.pending_changes.last_name %}
-                    <tr class="{% if person.pending_changes.last_name != person.user.last_name %}bg-blue-50/30{% endif %}">
-                        <td class="px-4 py-3 font-semibold text-gray-600">Last Name</td>
-                        <td class="px-4 py-3 text-gray-500">{{ person.user.last_name|default:"—" }}</td>
-                        <td class="px-4 py-3 font-medium {% if person.pending_changes.last_name != person.user.last_name %}text-blue-700{% else %}text-gray-700{% endif %}">
-                            {{ person.pending_changes.last_name }}
-                            {% if person.pending_changes.last_name != person.user.last_name %}
-                            <span class="ml-2 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold uppercase">Changed</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endif %}
-                    <tr class="{% if person.pending_changes.contact_number != person.contact_number %}bg-blue-50/30{% endif %}">
-                        <td class="px-4 py-3 font-semibold text-gray-600">Contact No.</td>
-                        <td class="px-4 py-3 text-gray-500">{{ person.contact_number|default:"—" }}</td>
-                        <td class="px-4 py-3 font-medium {% if person.pending_changes.contact_number != person.contact_number %}text-blue-700{% else %}text-gray-700{% endif %}">
-                            {{ person.pending_changes.contact_number|default:"—" }}
-                            {% if person.pending_changes.contact_number != person.contact_number %}
-                            <span class="ml-2 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold uppercase">Changed</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr class="{% if person.pending_changes.address != person.address %}bg-blue-50/30{% endif %}">
-                        <td class="px-4 py-3 font-semibold text-gray-600 align-top">Address</td>
-                        <td class="px-4 py-3 text-gray-500 align-top">{{ person.address|default:"—" }}</td>
-                        <td class="px-4 py-3 font-medium align-top {% if person.pending_changes.address != person.address %}text-blue-700{% else %}text-gray-700{% endif %}">
-                            {{ person.pending_changes.address|default:"—" }}
-                            {% if person.pending_changes.address != person.address %}
-                            <span class="ml-2 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold uppercase">Changed</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr class="{% if person.pending_changes.bio != person.bio %}bg-blue-50/30{% endif %}">
-                        <td class="px-4 py-3 font-semibold text-gray-600 align-top">Bio</td>
-                        <td class="px-4 py-3 text-gray-500 align-top max-w-xs">{{ person.bio|default:"—" }}</td>
-                        <td class="px-4 py-3 font-medium align-top max-w-xs {% if person.pending_changes.bio != person.bio %}text-blue-700{% else %}text-gray-700{% endif %}">
-                            {{ person.pending_changes.bio|default:"—" }}
-                            {% if person.pending_changes.bio != person.bio %}
-                            <span class="ml-2 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold uppercase">Changed</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
+        </div>
+        {% else %}
+        <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 mb-5">
+            <i class="fas fa-info-circle mr-2"></i>No field values differ from the current profile.
         </div>
         {% endif %}
 

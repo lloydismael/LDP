@@ -25,6 +25,36 @@ class User(AbstractUser):
     role = models.CharField(max_length=50, choices=Role.choices, default=Role.VIEWER)
     must_change_password = models.BooleanField(default=True)
 
+
+class SystemSettings(models.Model):
+    """The single persistent configuration record for administrator data tools."""
+
+    allow_import = models.BooleanField(default=True, verbose_name='Allow data imports')
+    allow_export = models.BooleanField(default=True, verbose_name='Allow data exports')
+    school_sync_enabled = models.BooleanField(default=True, verbose_name='Schools')
+    user_sync_enabled = models.BooleanField(default=True, verbose_name='Users and profiles')
+    activity_sync_enabled = models.BooleanField(default=True, verbose_name='Activities')
+    award_sync_enabled = models.BooleanField(default=True, verbose_name='Leadership awards')
+    updated_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='system_settings_updates',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'System settings'
+        verbose_name_plural = 'System settings'
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        return None
+
+    def __str__(self):
+        return 'Global system settings'
+
 class School(models.Model):
     class SchoolType(models.TextChoices):
         ELEMENTARY = 'ELEMENTARY', 'Elementary School'

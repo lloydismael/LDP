@@ -22,7 +22,6 @@ urlpatterns = [
     path('admin-tools/imports/<int:pk>/', views.bulk_import_detail, name='bulk_import_detail'),
     path('admin-tools/imports/<int:pk>/apply/', views.bulk_import_apply, name='bulk_import_apply'),
     path('admin-tools/imports/<int:pk>/report/', views.bulk_import_error_report, name='bulk_import_report'),
-    path('settings/toggle/', views.settings_toggle, name='settings_toggle'),
     path('settings/migrate-legacy/', views.legacy_migration, name='legacy_migration'),
     path('settings/export/<str:data_type>/', views.export_data, name='export_data'),
     path('settings/import/<str:data_type>/', views.import_data, name='import_data'),

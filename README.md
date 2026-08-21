@@ -193,12 +193,21 @@ flowchart TD
 
 ### Setup
 
-**1. Clone and start containers**
+**1. Clone and start containers (Windows PowerShell)**
 ```bash
 git clone https://github.com/lloydismael/LDP.git
 cd LDP
-docker-compose up --build
+./start.ps1
 ```
+
+The application exclusively uses `127.0.0.1:8001`. The startup script stops
+with the owning process details if port `8001` is already occupied. Docker's
+socket binding is the final exclusive reservation; a Windows excluded-port
+range is intentionally not used because it would also block this application.
+
+To run Django directly from the virtual environment, use
+`python manage.py runserver`. The project automatically binds it to
+`127.0.0.1:8001` and rejects alternate ports or non-local interfaces.
 
 **2. Apply migrations and create a superuser** *(in a second terminal)*
 ```bash
@@ -216,9 +225,9 @@ docker-compose exec web python manage.py seed_data
 
 | URL | Description |
 |-----|-------------|
-| `http://localhost:8001/` | Main portal |
-| `http://localhost:8001/dashboard/` | App dashboard |
-| `http://localhost:8001/admin/` | Django admin panel |
+| `http://127.0.0.1:8001/` | Main portal |
+| `http://127.0.0.1:8001/dashboard/` | App dashboard |
+| `http://127.0.0.1:8001/admin/` | Django admin panel |
 
 ---
 

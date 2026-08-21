@@ -12,5 +12,6 @@ python manage.py migrate --noinput
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
-echo "Starting gunicorn..."
-exec gunicorn --bind 0.0.0.0:8001 --workers 3 --timeout 120 --worker-class sync config.wsgi:application
+APP_PORT=8001
+echo "Starting gunicorn on fixed port ${APP_PORT}..."
+exec gunicorn --bind "0.0.0.0:${APP_PORT}" --workers 3 --timeout 120 --worker-class sync config.wsgi:application

@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
@@ -29,7 +30,6 @@ from ldp_core.models import (
 )
 
 TEMPLATE_VERSION = '1.0'
-MAX_IMPORT_BYTES = 10 * 1024 * 1024
 MAX_ROWS_PER_SHEET = 10_000
 SHEETS = {
     'Schools': [
@@ -68,6 +68,10 @@ ROLE_FOR_PERSON = {
 
 class ImportValidationError(ValueError):
     pass
+
+
+def max_import_bytes():
+    return getattr(settings, 'LDP_IMPORT_MAX_BYTES', 10 * 1024 * 1024)
 
 
 @dataclass
@@ -215,7 +219,7 @@ def workbook_bytes() -> bytes:
 
 
 def read_workbook(content: bytes) -> dict[str, list[tuple[int, dict[str, Any]]]]:
-    if len(content) > MAX_IMPORT_BYTES:
+    if len(content) > max_import_bytes():
         raise ImportValidationError('Workbook exceeds the 10 MB upload limit.')
     if not content.startswith(b'PK'):
         raise ImportValidationError('The uploaded file is not a valid .xlsx workbook.')

@@ -1,8 +1,13 @@
+import json
 import re
 from django import forms
 from django.db import transaction
 from django.conf import settings
-from .models import Person, User, Activity, School, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob
+from .models import Person, User, Activity, School, LeadershipAward, SchoolPrincipalHistory, PersonTransferHistory, ProfessionalJob, SystemSettings
+
+
+def configured_import_limit_mb():
+    return max(1, getattr(settings, 'LDP_IMPORT_MAX_BYTES', 10 * 1024 * 1024) // (1024 * 1024))
 
 
 class BulkImportUploadForm(forms.Form):
@@ -17,8 +22,69 @@ class BulkImportUploadForm(forms.Form):
             raise forms.ValidationError('Select an Excel .xlsx workbook.')
         max_bytes = getattr(settings, 'LDP_IMPORT_MAX_BYTES', 10 * 1024 * 1024)
         if upload.size > max_bytes:
-            raise forms.ValidationError('Workbook exceeds the 10 MB upload limit.')
+            raise forms.ValidationError(
+                f'Workbook exceeds the {configured_import_limit_mb()} MB upload limit.'
+            )
         return upload
+
+
+class SystemSettingsForm(forms.ModelForm):
+    class Meta:
+        model = SystemSettings
+        fields = [
+            'allow_import', 'allow_export', 'school_sync_enabled',
+            'user_sync_enabled', 'activity_sync_enabled', 'award_sync_enabled',
+        ]
+
+
+class LegacyMigrationForm(forms.Form):
+    ENTITIES = [
+        ('schools', 'Schools'), ('users', 'Users'), ('people', 'Profiles'),
+        ('activities', 'Activities'), ('awards', 'Leadership awards'),
+    ]
+    migration_file = forms.FileField(
+        label='Legacy JSON file',
+        widget=forms.ClearableFileInput(attrs={'accept': '.json,application/json'}),
+    )
+    migration_mode = forms.ChoiceField(
+        choices=[('preview', 'Preview only'), ('apply', 'Apply migration')],
+    )
+    conflict_strategy = forms.ChoiceField(choices=[
+        ('upsert', 'Create new and update existing'),
+        ('create_only', 'Create only, skip existing'),
+        ('update_only', 'Update only, skip missing'),
+    ])
+    entities = forms.MultipleChoiceField(
+        choices=ENTITIES,
+        widget=forms.CheckboxSelectMultiple,
+    )
+    field_mapping = forms.CharField(widget=forms.Textarea, initial='{}')
+
+    def clean_migration_file(self):
+        upload = self.cleaned_data['migration_file']
+        max_bytes = getattr(settings, 'LDP_IMPORT_MAX_BYTES', 10 * 1024 * 1024)
+        if upload.size > max_bytes:
+            raise forms.ValidationError(
+                f'JSON file exceeds the {configured_import_limit_mb()} MB upload limit.'
+            )
+        try:
+            payload = json.loads(upload.read().decode('utf-8'))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise forms.ValidationError('Select a valid UTF-8 JSON file.') from exc
+        if not isinstance(payload, (list, dict)):
+            raise forms.ValidationError('JSON must contain an object or a list.')
+        upload.seek(0)
+        self.payload = payload
+        return upload
+
+    def clean_field_mapping(self):
+        try:
+            mapping = json.loads(self.cleaned_data['field_mapping'] or '{}')
+        except json.JSONDecodeError as exc:
+            raise forms.ValidationError('Field mapping must be valid JSON.') from exc
+        if not isinstance(mapping, dict) or any(not isinstance(value, dict) for value in mapping.values()):
+            raise forms.ValidationError('Field mapping must be an object of entity mapping objects.')
+        return mapping
 
 
 class ProfessionalJobForm(forms.ModelForm):

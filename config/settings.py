@@ -36,6 +36,9 @@ CSRF_TRUSTED_ORIGINS = [
 ] + _csrf_extra
 
 INSTALLED_APPS = [
+    # Keep ldp_core before django.contrib.staticfiles so its fixed-port
+    # runserver command takes precedence over Django's development command.
+    'ldp_core',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,7 +47,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'db_file_storage',
     'rest_framework',
-    'ldp_core',
 ]
 
 MIDDLEWARE = [

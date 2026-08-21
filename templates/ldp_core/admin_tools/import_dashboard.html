@@ -1,6 +1,7 @@
 {% extends 'ldp_core/base_app.html' %}
 
-{% block page_title %}Bulk Data Import{% endblock %}
+{% block page_title %}Data Management{% endblock %}
+{% block header_title %}Data Management{% endblock %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6">
@@ -8,12 +9,22 @@
         <div class="flex flex-wrap justify-between items-start gap-5 relative z-10">
             <div>
                 <p class="uppercase tracking-[0.18em] text-xs font-semibold text-indigo-100 mb-2">Administrative tools</p>
-                <h3 class="text-3xl font-bold mb-2"><i class="fas fa-file-excel mr-2"></i>Bulk Data Import</h3>
-                <p class="text-indigo-100 max-w-2xl">Import schools, account profiles, activities, participants, and leadership awards in one validated workbook.</p>
+                <h3 class="text-3xl font-bold mb-2"><i class="fas fa-database mr-2"></i>Data Management</h3>
+                <p class="text-indigo-100 max-w-2xl">Validate imports, review history, download portable exports, and access legacy migration from one workspace.</p>
             </div>
-            <a href="{% url 'ldp_core:bulk_import_template' %}" class="px-4 py-2 bg-white text-indigo-700 rounded-lg font-semibold shadow hover:bg-indigo-50">
-                <i class="fas fa-download mr-2"></i>Download template
-            </a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'ldp_core:settings' %}" class="px-4 py-2 bg-white/15 border border-white/30 text-white rounded-lg font-semibold hover:bg-white/25"><i class="fas fa-sliders-h mr-2"></i>System settings</a>
+                {% if configuration.allow_import %}<a href="{% url 'ldp_core:bulk_import_template' %}" class="px-4 py-2 bg-white text-indigo-700 rounded-lg font-semibold shadow hover:bg-indigo-50"><i class="fas fa-download mr-2"></i>Download template</a>{% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="glass-card border {% if configuration.allow_import %}border-emerald-100 bg-emerald-50/40{% else %}border-red-100 bg-red-50/40{% endif %}">
+            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500">Imports</p><p class="text-lg font-bold mt-1">{% if configuration.allow_import %}<i class="fas fa-check-circle text-emerald-600 mr-2"></i>Enabled{% else %}<i class="fas fa-ban text-red-600 mr-2"></i>Disabled{% endif %}</p>
+        </div>
+        <div class="glass-card border {% if configuration.allow_export %}border-emerald-100 bg-emerald-50/40{% else %}border-red-100 bg-red-50/40{% endif %}">
+            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500">Exports</p><p class="text-lg font-bold mt-1">{% if configuration.allow_export %}<i class="fas fa-check-circle text-emerald-600 mr-2"></i>Enabled{% else %}<i class="fas fa-ban text-red-600 mr-2"></i>Disabled{% endif %}</p>
         </div>
     </section>
 
@@ -21,18 +32,18 @@
         <div class="lg:col-span-2 glass-card border border-gray-100">
             <h4 class="text-lg font-bold text-navy mb-2">Upload for validation</h4>
             <p class="text-sm text-gray-500 mb-5">Uploading creates a preview only. No school, user, activity, participant, or award is changed until confirmation.</p>
-            <form method="post" enctype="multipart/form-data" class="space-y-4">
+            {% if configuration.allow_import %}<form method="post" enctype="multipart/form-data" class="space-y-4">
                 {% csrf_token %}
                 <div class="p-5 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50">
                     <label for="{{ form.workbook.id_for_label }}" class="block text-sm font-bold text-gray-700 mb-2">Excel workbook (.xlsx)</label>
                     {{ form.workbook }}
                     {% for error in form.workbook.errors %}<p class="text-sm text-red-600 mt-2">{{ error }}</p>{% endfor %}
-                    <p class="text-xs text-gray-500 mt-2">Maximum size: 10 MB. Formulas are rejected for safety.</p>
+                    <p class="text-xs text-gray-500 mt-2">Maximum size: {{ max_import_mb }} MB. Formulas are rejected for safety.</p>
                 </div>
                 <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">
                     <i class="fas fa-search mr-2"></i>Validate and preview
                 </button>
-            </form>
+            </form>{% else %}<div class="p-5 rounded-xl border border-red-200 bg-red-50 text-sm text-red-700">Imports are disabled. Enable them in <a class="font-bold underline" href="{% url 'ldp_core:settings' %}">System Settings</a>.</div>{% endif %}
         </div>
         <aside class="glass-card border border-amber-100 bg-amber-50/50">
             <h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-shield-alt text-amber-600 mr-2"></i>Safety workflow</h4>
@@ -44,6 +55,16 @@
                 <li>Confirm one atomic import.</li>
             </ol>
         </aside>
+    </section>
+
+    <section class="glass-card border border-gray-100">
+        <div class="mb-4"><h4 class="text-lg font-bold text-navy">Portable JSON exports</h4><p class="text-xs text-gray-500">Versioned interchange files use stable school IDs and usernames. They are not full database backups.</p></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <a href="{% url 'ldp_core:export_data' 'schools' %}" class="rounded-xl border border-blue-100 bg-blue-50 p-4 font-semibold {% if not configuration.allow_export or not configuration.school_sync_enabled %}pointer-events-none opacity-50{% endif %}"><i class="fas fa-school text-blue-600 mr-2"></i>Schools <span class="block text-xs text-gray-500 mt-1">{{ school_count }} records</span></a>
+            <a href="{% url 'ldp_core:export_data' 'users' %}" class="rounded-xl border border-violet-100 bg-violet-50 p-4 font-semibold {% if not configuration.allow_export or not configuration.user_sync_enabled %}pointer-events-none opacity-50{% endif %}"><i class="fas fa-users text-violet-600 mr-2"></i>Users <span class="block text-xs text-gray-500 mt-1">{{ user_count }} records</span></a>
+            <a href="{% url 'ldp_core:export_data' 'activities' %}" class="rounded-xl border border-amber-100 bg-amber-50 p-4 font-semibold {% if not configuration.allow_export or not configuration.activity_sync_enabled %}pointer-events-none opacity-50{% endif %}"><i class="fas fa-calendar-alt text-amber-600 mr-2"></i>Activities <span class="block text-xs text-gray-500 mt-1">{{ activity_count }} records</span></a>
+            <a href="{% url 'ldp_core:export_data' 'awards' %}" class="rounded-xl border border-rose-100 bg-rose-50 p-4 font-semibold {% if not configuration.allow_export or not configuration.award_sync_enabled %}pointer-events-none opacity-50{% endif %}"><i class="fas fa-award text-rose-600 mr-2"></i>Awards <span class="block text-xs text-gray-500 mt-1">{{ award_count }} records</span></a>
+        </div>
     </section>
 
     <section class="glass-card border border-gray-100 overflow-hidden">
@@ -63,5 +84,26 @@
             </table>
         </div>
     </section>
+
+    <details class="glass-card border border-amber-200">
+        <summary class="cursor-pointer font-bold text-gray-800"><i class="fas fa-exclamation-triangle text-amber-600 mr-2"></i>Advanced: Legacy JSON migration</summary>
+        <div class="mt-5 border-t border-gray-100 pt-5">
+            <p class="text-sm text-gray-600 mb-4">Compatibility tool for previous LDP exports. Always preview first. Prefer the validated Excel workflow for new imports.</p>
+            {% if configuration.allow_import %}
+            <form method="post" action="{% url 'ldp_core:legacy_migration' %}" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div><label class="block text-sm font-bold mb-1">Legacy JSON file</label>{{ migration_form.migration_file }}</div>
+                    <div><label class="block text-sm font-bold mb-1">Mode</label>{{ migration_form.migration_mode }}</div>
+                    <div><label class="block text-sm font-bold mb-1">Conflict strategy</label>{{ migration_form.conflict_strategy }}</div>
+                </div>
+                <div><label class="block text-sm font-bold mb-2">Modules</label><div class="flex flex-wrap gap-4">{{ migration_form.entities }}</div></div>
+                <div><label class="block text-sm font-bold mb-1">Field mapping JSON</label>{{ migration_form.field_mapping }}</div>
+                <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold"><i class="fas fa-search mr-2"></i>Run migration</button>
+            </form>
+            {% else %}<p class="text-sm text-red-700">Legacy migration is unavailable while imports are disabled.</p>{% endif %}
+            {% if migration_report %}<div class="mt-5 grid grid-cols-2 md:grid-cols-5 gap-3 text-center"><div class="rounded-lg bg-gray-50 p-3"><strong class="block text-xl">{{ migration_report.source_rows }}</strong><small>Source</small></div><div class="rounded-lg bg-cyan-50 p-3"><strong class="block text-xl">{{ migration_report.compatible_rows }}</strong><small>Compatible</small></div><div class="rounded-lg bg-emerald-50 p-3"><strong class="block text-xl">{{ migration_report.created }}</strong><small>Created</small></div><div class="rounded-lg bg-indigo-50 p-3"><strong class="block text-xl">{{ migration_report.updated }}</strong><small>Updated</small></div><div class="rounded-lg bg-rose-50 p-3"><strong class="block text-xl">{{ migration_report.skipped }}</strong><small>Skipped</small></div></div>{% endif %}
+        </div>
+    </details>
 </div>
 {% endblock %}
